@@ -335,35 +335,131 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
   const [audioOn, setAudioOn] = useState(false);
+  
+  // Handle audio loop and play/pause
   useEffect(() => {
     const audio = document.querySelector<HTMLAudioElement>("#bg-audio");
     if (!audio) return;
+    
+    // Ensure audio is paused on initial load
+    audio.pause();
+    
     const handleTimeUpdate = () => {
       if (audio.duration - audio.currentTime < 0.05 && !audio.paused) {
         audio.currentTime = 0;
         audio.play();
       }
     };
+    
     audio.addEventListener("timeupdate", handleTimeUpdate);
     return () => {
       audio.removeEventListener("timeupdate", handleTimeUpdate);
     };
   }, []);
+  
+  // Handle play/pause based on audioOn state
   useEffect(() => {
     const audio = document.querySelector<HTMLAudioElement>("#bg-audio");
     if (!audio) return;
+    
+    // Ensure audio is paused on initial load
+    audio.pause();
+    
     if (audioOn) {
-      audio.play();
+      audio.play().catch(err => console.log('Audio play failed:', err));
     } else {
       audio.pause();
+      audio.currentTime = 0; // reset audio position
     }
   }, [audioOn]);
-  // Pause on page unload
+  
+  // Handle page visibility changes and app state changes - pause when page is hidden
   useEffect(() => {
-    const handleUnload = () => setAudioOn(false);
-    window.addEventListener('beforeunload', handleUnload);
-    return () => window.removeEventListener('beforeunload', handleUnload);
-  }, []);
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        setAudioOn(false);
+      }
+    };
+    
+    const handleBeforeUnload = () => {
+      setAudioOn(false);
+    };
+    
+    // Handle mobile app state changes (when app goes to background)
+    const handlePageHide = () => {
+      setAudioOn(false);
+    };
+    
+    const handlePageShow = () => {
+      // Don't auto-resume, user needs to click button
+      // Ensure audio is paused when page becomes visible again
+      const audio = document.querySelector<HTMLAudioElement>("#bg-audio");
+      if (audio) {
+        audio.pause();
+      }
+    };
+    
+    // Handle mobile browser app switching
+    const handleBlur = () => {
+      if (isMobile) {
+        setAudioOn(false);
+      }
+    };
+    
+    const handleFocus = () => {
+      // Don't auto-resume, user needs to click button
+      // Ensure audio is paused when window gains focus
+      const audio = document.querySelector<HTMLAudioElement>("#bg-audio");
+      if (audio) {
+        audio.pause();
+      }
+    };
+    
+    // Handle mobile app state changes more aggressively
+    const handleAppStateChange = () => {
+      if (isMobile && document.hidden) {
+        setAudioOn(false);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handlePageHide);
+    window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener('blur', handleBlur);
+    window.addEventListener('focus', handleFocus);
+    
+    // Additional mobile-specific handling
+    if (isMobile) {
+      // Handle when user switches apps or minimizes browser
+      const handleResize = () => {
+        if (window.innerHeight < window.outerHeight * 0.8) {
+          setAudioOn(false);
+        }
+      };
+      
+      window.addEventListener('resize', handleResize);
+      
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+        window.removeEventListener('pagehide', handlePageHide);
+        window.removeEventListener('pageshow', handlePageShow);
+        window.removeEventListener('blur', handleBlur);
+        window.removeEventListener('focus', handleFocus);
+        window.removeEventListener('resize', handleResize);
+      };
+    }
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handlePageHide);
+      window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [isMobile]);
   const [selectedNav, setSelectedNav] = useState('home');
   const [isRotating, setIsRotating] = useState(false);
   // State for modal image
@@ -372,11 +468,34 @@ export default function Home() {
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   // דמו נתוני לידים
-  const leads = [
+  const [leads, setLeads] = useState([
     { name: "דני כהן", phone: "050-1234567", occupation: "עיצוב גרפי" },
     { name: "רוני לוי", phone: "052-7654321", occupation: "קוסמטיקה" },
-  ];
+  ]);
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Get form data
+    const formData = new FormData(e.target as HTMLFormElement);
+    const newLead = {
+      name: formData.get('fullName') as string,
+      phone: formData.get('phone') as string,
+      occupation: formData.get('businessField') as string
+    };
+    
+    // Add new lead to the array
+    setLeads(prevLeads => [...prevLeads, newLead]);
+    
+    // Show success modal
+    setShowSuccessModal(true);
+    
+    // Reset form
+    (e.target as HTMLFormElement).reset();
+  };
+
   if (showAdmin) {
     return (
       <div style={{ minHeight: '100vh', background: '#1e1e1e', color: '#fff', padding: 32 }}>
@@ -664,19 +783,19 @@ export default function Home() {
           <div className="visual-separator-box" style={{margin:'120px auto 0 auto',width:'600px',height:'auto',border:'2px solid #fff',borderRadius:'24px',background:'#1e1e1e',padding:'32px',boxSizing:'border-box',display:'flex',alignItems:'flex-start',justifyContent:'center'}}>
             <div style={{width:'100%',maxWidth:'520px',margin:'0 auto',color:'#fff',fontWeight:500,fontSize:'1.13rem',letterSpacing:'0.5px',textAlign:'right',lineHeight:'1.85',background:'none',border:'none',padding:0, fontFamily: "Assistant, Arial, sans-serif"}}>
               <div style={{fontSize:'36px',fontWeight:800,color:'#fff',textAlign:'center',marginBottom:'24px'}}>על עצמי</div>
-              <p style={{margin:'0 0 18px 0', color:'#e5ff00'}}>.היי, נעים להכיר – אני דניאל נמימי</p>
-              <p style={{margin:'0 0 18px 0'}}>מומחה לפרסום ושיווק דיגיטלי, בניית אתרים, דפי נחיתה ולוגואים חכמים מבוססי&nbsp;<span dir="ltr">AI</span></p>
+              <p style={{margin:'0 0 18px 0', color:'#e5ff00'}}>.היי, נעים להכיר – דניאל נמימי</p>
+              <p style={{margin:'0 0 18px 0', direction: 'rtl', unicodeBidi: 'isolate'}}>מומחה לפרסום ושיווק דיגיטלי, בניית אתרים, דפי נחיתה ולוגואים חכמים מבוססי <span dir="ltr" style={{display: 'inline-block', whiteSpace: 'nowrap', unicodeBidi: 'isolate'}}>.Ai</span></p>
               <p style={{margin:'0 0 18px 0', color:'#e5ff00'}}>
-                <span className="hide-on-mobile">אני עוזר לעסקים לא רק להיראות מקצועיים – אלא לבלוט, לגדול ולהביא תוצאות אמיתיות</span>
-                <span className="show-on-mobile">אני עוזר לעסקים לא רק להיראות מקצועיים אלא לבלוט, לגדול ולהביא תוצאות אמיתיות</span>
+                <span className="hide-on-mobile">אני עוזר לעסקים לא רק להיראות מקצועיים – אלא לבלוט, לגדול ולהביא תוצאות אמיתיות‮!‬</span>
+                <span className="show-on-mobile">אני עוזר לעסקים לא רק להיראות מקצועיים אלא לבלוט, לגדול ולהביא תוצאות אמיתיות‮!‬</span>
               </p>
-              <p style={{margin:'0 0 18px 0'}}>.בין אם זה קמפיינים בפייסבוק או באינסטגרם<br/>:אני בונה עבורך מערכת שלמה שעובדת בקליק<br/>
+              <p style={{margin:'0 0 18px 0'}}>,בין אם זה קמפיינים בפייסבוק או באינסטגרם<br/>:אני בונה עבורך מערכת שלמה שעובדת בקליק<br/>
                 <span style={{color:'#e5ff00'}}>
                   <span className="hide-on-mobile">פרסום ממומן ← קבלת לידים חמים ← ועד לסגירה אוטומטית של לקוחות</span>
                   <span className="show-on-mobile" dir="rtl">פרסום ממומן ← קבלת לידים חמים ←<br/>ועד לסגירה אוטומטית של לקוחות</span>
                 </span>
               </p>
-              <p style={{margin:'0 0 18px 0'}}>.אני מאמין שעסק לא צריך לרדוף אחרי לקוחות<br/>אלא למשוך אותם אליו עם מיתוג נכון, עיצוב מדויק וטכנולוגיה חכמה</p>
+              <p style={{margin:'0 0 18px 0'}}>היום כבר לא צריך לרדוף אחרי לקוחות ולידים-שיווק חכם ומדוייק גורם להם להגיע אליך</p>
             </div>
           </div>
         </section>
@@ -786,7 +905,7 @@ export default function Home() {
       {/* GROWTH/LEAD FORM */}
       <section id="contact">
         <section className="lead-form-section" id="lead-form-section">
-          <form className="lead-form">
+          <form className="lead-form" onSubmit={handleFormSubmit}>
             <div className="lead-form-title-row">
               <span className="lead-form-colon">:</span>
               <span className="lead-form-title">השאירו פרטים</span>
@@ -829,8 +948,7 @@ export default function Home() {
         {/* הסרתי את המלל והריבוע של 'אפליקציות שניתן ליצור קשר' */}
       </footer>
 
-      {/* נגן שמע אוטומטי מוסתר */}
-      <audio src="/30sec.mp3" autoPlay loop hidden />
+      {/* נגן שמע אוטומטי מוסתר - הוסר כדי למנוע הפעלה אוטומטית */}
       {/* כפתור קוד מנהל בתחתית האתר */}
       <div style={{ display: 'flex', justifyContent: 'center', margin: '40px 0 0 0' }}>
         <button
@@ -869,6 +987,56 @@ export default function Home() {
               ביטול
             </button>
             {error && <div style={{ color: 'red', marginTop: 12 }}>{error}</div>}
+          </div>
+        </div>
+      )}
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div style={{ 
+          position: 'fixed', 
+          top: 0, 
+          left: 0, 
+          width: '100vw', 
+          height: '100vh', 
+          background: 'rgba(0,0,0,0.8)', 
+          zIndex: 9999, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center' 
+        }}>
+          <div style={{ 
+            background: '#232323', 
+            borderRadius: 18, 
+            padding: 32, 
+            boxShadow: '0 4px 32px #0008', 
+            minWidth: 320,
+            maxWidth: 400,
+            textAlign: 'center',
+            border: '2px solid #e5ff00'
+          }}>
+            <div style={{ 
+              fontWeight: 700, 
+              fontSize: 20, 
+              marginBottom: 24, 
+              color: '#e5ff00' 
+            }}>
+              הפרטים נשמרו, תודה!
+            </div>
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              style={{ 
+                background: '#e5ff00', 
+                color: '#232323', 
+                fontWeight: 800, 
+                border: 'none', 
+                borderRadius: 12, 
+                padding: '12px 32px', 
+                fontSize: 18, 
+                cursor: 'pointer' 
+              }}
+            >
+              אוקיי
+            </button>
           </div>
         </div>
       )}
