@@ -223,7 +223,7 @@ a.secondary {
   width: 100%;
   height: 380px;
   overflow: hidden;
-  border: 4px solid #e5ff00;
+  border: 4px solid #00F0FF;
   border-radius: 0 !important;
 }
 
@@ -280,14 +280,14 @@ a.secondary {
   color: #fff;
   text-align: center;
   margin-bottom: 32px;
-  text-shadow: 0 0 8px #e5ff00cc, 0 0 2px #e5ff00;
+  text-shadow: 0 0 8px #00F0FFcc, 0 0 2px #00F0FF;
 }
 
 .logo {
   text-align: left !important;
   margin-left: 0 !important;
   margin-right: auto !important;
-  color: #e5ff00 !important;
+  color: #00F0FF !important;
   font-size: 2.8rem !important;
 }
 
@@ -310,6 +310,14 @@ a.secondary {
   display: flex;
   gap: 40px;
   text-align: left;
+  flex-direction: row-reverse;
+}
+
+.nav a {
+  font-size: 60px;
+  font-weight: 900 !important;
+  text-shadow: 0 2px 8px #00F0FF55, 0 0 2px #00F0FF;
+  font-family: 'Assistant', Arial, sans-serif !important;
 }
 
 @media (max-width: 600px) {
@@ -327,24 +335,8 @@ a.secondary {
     padding: 0 !important;
     gap: 0 !important;
   }
-}
-
-.mobile-portfolio-title {
-  display: none;
-  text-align: left !important;
-  color: #e5ff00;
-  font-size: 2.8rem !important;
-  font-weight: bold;
-  margin-bottom: 8px;
-  margin-left: 0 !important;
-  margin-right: auto !important;
-}
-@media (max-width: 600px) {
-  .mobile-portfolio-title {
-    display: block !important;
-    text-align: left !important;
-    margin-left: 0 !important;
-    margin-right: auto !important;
+  .nav a {
+    font-size: 14px !important;
   }
 }
 
@@ -360,5 +352,11 @@ a.secondary {
 @media (max-width: 600px) {
   .hero-ctas.hero-ctas-mobile.show-on-mobile button:first-child {
     margin-bottom: 8px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .hero-img-circle {
+    box-shadow: 0 0 15px 3px #00F0FFcc, 0 0 30px 6px #00F0FF66 !important;
   }
 }

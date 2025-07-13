@@ -3,6 +3,9 @@
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import styles from './page.module.css';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { format, isSameDay, isToday, isYesterday, parseISO } from 'date-fns';
 
 // RotatingTextStatic component for the hero section
 function RotatingTextStatic() {
@@ -56,7 +59,7 @@ function RotatingTextHero() {
       </span>
       <style jsx>{`
         .rotating-text {
-          color: #e5ff00 !important;
+          color: #00F0FF !important;
           font-family: 'Assistant', Arial, sans-serif !important;
         }
       `}</style>
@@ -90,19 +93,30 @@ function RotatingTextHeroLogo() {
   );
 }
 
-// RotatingTextFeatureCard for feature card (slide-up, 1.5s interval, receives index/slide as props)
-function RotatingTextFeatureCard(props: { index: number; slide: boolean }) {
-  const { index, slide } = props;
+// RotatingTextFeatureCard for feature card (fade in/out)
+function RotatingTextFeatureCard() {
   const slides = [
     "בניית אתרים",
     "יצירת דפי נחיתה ממירים",
     "יצירת לוגו מבוסס Ai"
   ];
+  const [localIndex, localSetIndex] = useState(0);
+  const [localSlide, localSetSlide] = useState(true);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      localSetSlide(false);
+      setTimeout(() => {
+        localSetIndex((prev) => (prev + 1) % slides.length);
+        localSetSlide(true);
+      }, 2000); // היה 1500
+    }, 2000); // היה 1500
+    return () => clearInterval(interval);
+  }, []);
   return (
-    <span className={`feature-card-title feature-rotating-text${slide ? " in" : " out"}`}>{slides[index]}
+    <span className={`feature-card-title feature-rotating-text${localSlide ? " in" : " out"}`}>{slides[localIndex]}
       <style jsx>{`
         .feature-rotating-text {
-          color: #e5ff00 !important;
+          color: #00F0FF !important;
           font-size: 1.7rem;
           font-weight: 800;
           font-family: inherit;
@@ -112,34 +126,43 @@ function RotatingTextFeatureCard(props: { index: number; slide: boolean }) {
           display: inline-block;
           text-transform: uppercase;
           margin: 0;
-          transition: transform 0.3s cubic-bezier(.4,2,.6,1), opacity 0.3s;
+          transition: opacity 0.6s cubic-bezier(.4,2,.6,1);
         }
         .feature-rotating-text.in {
           opacity: 1;
-          transform: translateY(0);
         }
         .feature-rotating-text.out {
           opacity: 0;
-          transform: translateY(-32px);
         }
       `}</style>
     </span>
   );
 }
 
-// RotatingTextFeatureCard2 for feature card (slide-up, 1.5s interval, receives index/slide as props)
-function RotatingTextFeatureCard2(props: { index: number; slide: boolean }) {
-  const { index, slide } = props;
+// RotatingTextFeatureCard2 for feature card (fade in/out)
+function RotatingTextFeatureCard2() {
   const slides = [
     "פרסום דיגיטלי ברשתות",
     "בפייסבוק",
     "באינסטנגרם"
   ];
+  const [localIndex, localSetIndex] = useState(0);
+  const [localSlide, localSetSlide] = useState(true);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      localSetSlide(false);
+      setTimeout(() => {
+        localSetIndex((prev) => (prev + 1) % slides.length);
+        localSetSlide(true);
+      }, 2000); // היה 1500
+    }, 2000); // היה 1500
+    return () => clearInterval(interval);
+  }, []);
   return (
-    <span className={`feature-card-title feature-rotating-text${slide ? " in" : " out"}`}>{slides[index]}
+    <span className={`feature-card-title feature-rotating-text${localSlide ? " in" : " out"}`}>{slides[localIndex]}
       <style jsx>{`
         .feature-rotating-text {
-          color: #e5ff00 !important;
+          color: #00F0FF !important;
           font-size: 1.7rem;
           font-weight: 800;
           font-family: inherit;
@@ -149,15 +172,13 @@ function RotatingTextFeatureCard2(props: { index: number; slide: boolean }) {
           display: inline-block;
           text-transform: uppercase;
           margin: 0;
-          transition: transform 0.3s cubic-bezier(.4,2,.6,1), opacity 0.3s;
+          transition: opacity 0.6s cubic-bezier(.4,2,.6,1);
         }
         .feature-rotating-text.in {
           opacity: 1;
-          transform: translateY(0);
         }
         .feature-rotating-text.out {
           opacity: 0;
-          transform: translateY(-32px);
         }
       `}</style>
     </span>
@@ -188,7 +209,7 @@ function RotatingTextHeroDigital() {
     <span className={`feature-card-title feature-rotating-text hero-rotating-text${slide ? " in" : " out"}`}>{slides[index]}
       <style jsx>{`
         .hero-rotating-text {
-          color: #e5ff00 !important;
+          color: #00F0FF !important;
           font-size: 1.7rem;
           font-weight: 800;
           font-family: inherit;
@@ -231,19 +252,19 @@ function RotatingTextMobileCard1() {
   return (
     <span className={`feature-card-title feature-rotating-text${slide ? ' in' : ' out'}`}
       style={{
-        color:'#e5ff00',
+        color:'#00F0FF',
         fontWeight:800,
         fontSize:'1.7rem',
         textAlign:'center',
         display:'block',
         marginTop:'0.5em',
-        textShadow:'0 0 12px #e5ff88, 0 0 24px #e5ff00cc'
+        textShadow:'0 0 12px #00F0FF99, 0 0 24px #00F0FFcc'
       }}>
       {slides[index]}
       <style jsx>{`
         @media (max-width: 600px) {
           .feature-rotating-text {
-            text-shadow: 0 0 12px #e5ff88, 0 0 24px #e5ff00cc;
+            text-shadow: 0 0 12px #00F0FF99, 0 0 24px #00F0FFcc;
           }
         }
         .feature-rotating-text {
@@ -279,19 +300,19 @@ function RotatingTextMobileCard2() {
   return (
     <span className={`feature-card-title feature-rotating-text${slide ? ' in' : ' out'}`}
       style={{
-        color:'#e5ff00',
+        color:'#00F0FF',
         fontWeight:800,
         fontSize:'1.7rem',
         textAlign:'center',
         display:'block',
         marginTop:'0.5em',
-        textShadow:'0 0 12px #e5ff88, 0 0 24px #e5ff00cc'
+        textShadow:'0 0 12px #00F0FF99, 0 0 24px #00F0FFcc'
       }}>
       {slides[index]}
       <style jsx>{`
         @media (max-width: 600px) {
           .feature-rotating-text {
-            text-shadow: 0 0 12px #e5ff88, 0 0 24px #e5ff00cc;
+            text-shadow: 0 0 12px #00F0FF99, 0 0 24px #00F0FFcc;
           }
         }
         .feature-rotating-text {
@@ -334,132 +355,6 @@ export default function Home() {
     }, 1500);
     return () => clearInterval(interval);
   }, []);
-  const [audioOn, setAudioOn] = useState(false);
-  
-  // Handle audio loop and play/pause
-  useEffect(() => {
-    const audio = document.querySelector<HTMLAudioElement>("#bg-audio");
-    if (!audio) return;
-    
-    // Ensure audio is paused on initial load
-    audio.pause();
-    
-    const handleTimeUpdate = () => {
-      if (audio.duration - audio.currentTime < 0.05 && !audio.paused) {
-        audio.currentTime = 0;
-        audio.play();
-      }
-    };
-    
-    audio.addEventListener("timeupdate", handleTimeUpdate);
-    return () => {
-      audio.removeEventListener("timeupdate", handleTimeUpdate);
-    };
-  }, []);
-  
-  // Handle play/pause based on audioOn state
-  useEffect(() => {
-    const audio = document.querySelector<HTMLAudioElement>("#bg-audio");
-    if (!audio) return;
-    
-    // Ensure audio is paused on initial load
-    audio.pause();
-    
-    if (audioOn) {
-      audio.play().catch(err => console.log('Audio play failed:', err));
-    } else {
-      audio.pause();
-      audio.currentTime = 0; // reset audio position
-    }
-  }, [audioOn]);
-  
-  // Handle page visibility changes and app state changes - pause when page is hidden
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        setAudioOn(false);
-      }
-    };
-    
-    const handleBeforeUnload = () => {
-      setAudioOn(false);
-    };
-    
-    // Handle mobile app state changes (when app goes to background)
-    const handlePageHide = () => {
-      setAudioOn(false);
-    };
-    
-    const handlePageShow = () => {
-      // Don't auto-resume, user needs to click button
-      // Ensure audio is paused when page becomes visible again
-      const audio = document.querySelector<HTMLAudioElement>("#bg-audio");
-      if (audio) {
-        audio.pause();
-      }
-    };
-    
-    // Handle mobile browser app switching
-    const handleBlur = () => {
-      if (isMobile) {
-        setAudioOn(false);
-      }
-    };
-    
-    const handleFocus = () => {
-      // Don't auto-resume, user needs to click button
-      // Ensure audio is paused when window gains focus
-      const audio = document.querySelector<HTMLAudioElement>("#bg-audio");
-      if (audio) {
-        audio.pause();
-      }
-    };
-    
-    // Handle mobile app state changes more aggressively
-    const handleAppStateChange = () => {
-      if (isMobile && document.hidden) {
-        setAudioOn(false);
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('pagehide', handlePageHide);
-    window.addEventListener('pageshow', handlePageShow);
-    window.addEventListener('blur', handleBlur);
-    window.addEventListener('focus', handleFocus);
-    
-    // Additional mobile-specific handling
-    if (isMobile) {
-      // Handle when user switches apps or minimizes browser
-      const handleResize = () => {
-        if (window.innerHeight < window.outerHeight * 0.8) {
-          setAudioOn(false);
-        }
-      };
-      
-      window.addEventListener('resize', handleResize);
-      
-      return () => {
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-        window.removeEventListener('beforeunload', handleBeforeUnload);
-        window.removeEventListener('pagehide', handlePageHide);
-        window.removeEventListener('pageshow', handlePageShow);
-        window.removeEventListener('blur', handleBlur);
-        window.removeEventListener('focus', handleFocus);
-        window.removeEventListener('resize', handleResize);
-      };
-    }
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('pagehide', handlePageHide);
-      window.removeEventListener('pageshow', handlePageShow);
-      window.removeEventListener('blur', handleBlur);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [isMobile]);
   const [selectedNav, setSelectedNav] = useState('home');
   const [isRotating, setIsRotating] = useState(false);
   // State for modal image
@@ -469,57 +364,96 @@ export default function Home() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  // דמו נתוני לידים
+  // דמו נתוני לידים עם תאריך
   const [leads, setLeads] = useState([
-    { name: "דני כהן", phone: "050-1234567", occupation: "עיצוב גרפי" },
-    { name: "רוני לוי", phone: "052-7654321", occupation: "קוסמטיקה" },
+    { name: "דני כהן", phone: "050-1234567", occupation: "עיצוב גרפי", date: new Date() },
+    { name: "רוני לוי", phone: "052-7654321", occupation: "קוסמטיקה", date: new Date(Date.now() - 86400000) }, // אתמול
   ]);
+  // סטייט ללוח שנה וסינון
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [filterMode, setFilterMode] = useState<'all' | 'today' | 'yesterday' | 'date'>('all');
 
+  // סינון לידים
+  const filteredLeads = leads.filter(lead => {
+    if (filterMode === 'all') return true;
+    if (filterMode === 'today') return isToday(lead.date);
+    if (filterMode === 'yesterday') return isYesterday(lead.date);
+    if (filterMode === 'date' && selectedDate) return isSameDay(lead.date, selectedDate);
+    return true;
+  });
+
+  // עדכון תאריך בליד חדש
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Get form data
     const formData = new FormData(e.target as HTMLFormElement);
     const newLead = {
       name: formData.get('fullName') as string,
       phone: formData.get('phone') as string,
-      occupation: formData.get('businessField') as string
+      occupation: formData.get('businessField') as string,
+      date: new Date(),
     };
-    
-    // Add new lead to the array
     setLeads(prevLeads => [...prevLeads, newLead]);
-    
-    // Show success modal
     setShowSuccessModal(true);
-    
-    // Reset form
     (e.target as HTMLFormElement).reset();
   };
+
+  // טוען לידים מה-localStorage אם קיימים
+  useEffect(() => {
+    const stored = localStorage.getItem('leads');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        // ודא שהשדה date הוא אובייקט Date
+        setLeads(parsed.map((lead: any) => ({ ...lead, date: new Date(lead.date) })));
+      } catch {}
+    }
+  }, []);
+  // שומר לידים ב-localStorage בכל שינוי
+  useEffect(() => {
+    localStorage.setItem('leads', JSON.stringify(leads));
+  }, [leads]);
 
   if (showAdmin) {
     return (
       <div style={{ minHeight: '100vh', background: '#1e1e1e', color: '#fff', padding: 32 }}>
         <button
           onClick={() => setShowAdmin(false)}
-          style={{ marginBottom: 24, background: '#e5ff00', color: '#232323', fontWeight: 800, border: 'none', borderRadius: 16, padding: '12px 28px', fontSize: 18, cursor: 'pointer' }}
+          style={{ marginBottom: 24, background: '#00F0FF', color: '#232323', fontWeight: 800, border: 'none', borderRadius: 16, padding: '12px 28px', fontSize: 18, cursor: 'pointer' }}
         >
           דף הבית
         </button>
-        <h2 style={{ color: '#e5ff00', marginBottom: 24 }}>טבלת לידים</h2>
+        <h2 style={{ color: '#00F0FF', marginBottom: 24 }}>טבלת לידים</h2>
+        {/* לוח שנה וכפתורי סינון */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+          <DatePicker
+            selected={selectedDate}
+            onChange={date => { setSelectedDate(date); setFilterMode('date'); }}
+            dateFormat="dd/MM/yyyy"
+            placeholderText="בחר תאריך..."
+            isClearable
+            calendarStartDay={0}
+            className="datepicker-input"
+          />
+          <button style={{ background: '#00F0FF', color: '#232323', fontWeight: 700, border: 'none', borderRadius: 8, padding: '8px 18px', cursor: 'pointer' }} onClick={() => { setFilterMode('today'); setSelectedDate(null); }}>היום</button>
+          <button style={{ background: '#00F0FF', color: '#232323', fontWeight: 700, border: 'none', borderRadius: 8, padding: '8px 18px', cursor: 'pointer' }} onClick={() => { setFilterMode('yesterday'); setSelectedDate(null); }}>אתמול</button>
+          <button style={{ background: '#00F0FF', color: '#232323', fontWeight: 700, border: 'none', borderRadius: 8, padding: '8px 18px', cursor: 'pointer' }} onClick={() => { setFilterMode('all'); setSelectedDate(null); }}>מקסימום</button>
+        </div>
         <table style={{ width: '100%', borderCollapse: 'collapse', background: '#232323', borderRadius: 12 }}>
           <thead>
-            <tr style={{ background: '#e5ff00', color: '#232323' }}>
+            <tr style={{ background: '#00F0FF', color: '#232323' }}>
               <th style={{ padding: 12 }}>שם מלא</th>
               <th style={{ padding: 12 }}>מספר טלפון</th>
               <th style={{ padding: 12 }}>תחום עיסוק</th>
+              <th style={{ padding: 12 }}>תאריך</th>
             </tr>
           </thead>
           <tbody>
-            {leads.map((lead, idx) => (
+            {filteredLeads.map((lead, idx) => (
               <tr key={idx} style={{ borderBottom: '1px solid #444' }}>
                 <td style={{ padding: 12 }}>{lead.name}</td>
                 <td style={{ padding: 12 }}>{lead.phone}</td>
                 <td style={{ padding: 12 }}>{lead.occupation}</td>
+                <td style={{ padding: 12 }}>{format(lead.date, 'dd/MM/yyyy')}</td>
               </tr>
             ))}
           </tbody>
@@ -532,7 +466,6 @@ export default function Home() {
   }
   return (
     <div className="landing-root">
-      <audio id="bg-audio" src="/30sec.mp3" loop hidden />
       <header
         className="header"
         style={
@@ -543,195 +476,113 @@ export default function Home() {
       >
         {isMobile ? (
           <>
-            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100vw', position: 'relative', padding: '0 8px' }}>
-              <div className="mobile-portfolio-title"
-                style={{
-                  color: '#e5ff00',
-                  fontWeight: 'bold',
-                  fontSize: '1.5rem',
-                  textAlign: 'left',
-                  display: 'block',
-                  background: '#232323',
-                  border: '2px solid #e5ff00',
-                  borderRadius: 18,
-                  padding: '6px 18px',
-                  marginLeft: 0,
-                  marginRight: 'auto',
-                }}
-              >Portfolio</div>
-              <button
-                onClick={() => setAudioOn((on) => !on)}
-                style={{
-                  background: '#232323',
-                  border: '2px solid #e5ff00',
-                  borderRadius: '50%',
-                  boxShadow: audioOn ? '0 0 4px 1.5px #e5ff00, 0 0 8px 3px #e5ff00aa' : '0 2px 12px #e5ff0033',
-                  cursor: 'pointer',
-                  zIndex: 1000,
-                  padding: 0,
-                  width: 44,
-                  height: 44,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'box-shadow 0.2s',
-                  marginLeft: 12,
-                }}
-                aria-label={audioOn ? 'כבה מוזיקה' : 'נגן מוזיקה'}
-              >
-                {audioOn || isMobile ? (
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="#e5ff00" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M3 9v6h4l5 5V4L7 9H3z"/>
-                    <path d="M16.5 12c0-1.77-1-3.29-2.5-4.03v8.06A4.978 4.978 0 0016.5 12z"/>
-                    <path d="M14 3.23v2.06c3.39.49 6 3.39 6 6.71s-2.61 6.22-6 6.71v2.06c4.5-.52 8-4.31 8-8.77s-3.5-8.25-8-8.77z"/>
-                  </svg>
-                ) : (
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="#e5ff00" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M16.5 12c0-1.77-1-3.29-2.5-4.03v8.06A4.978 4.978 0 0016.5 12z"/>
-                    <path d="M3 9v6h4l5 5V4L7 9H3z"/>
-                  </svg>
-                )}
-              </button>
-            </div>
-            <nav className="nav" style={{ width: '100vw', display: 'flex', justifyContent: 'center', gap: 24, marginTop: 8 }}>
-              <a
-                href="#hero"
-                className={selectedNav === 'home' ? 'nav-selected' : ''}
-                onClick={() => setSelectedNav('home')}
-              >home</a>
-              <a
-                href="#works"
-                className={selectedNav === 'works' ? 'nav-selected' : ''}
-                onClick={() => setSelectedNav('works')}
-              >works</a>
-              <a
-                href="#about"
-                className={selectedNav === 'about' ? 'nav-selected' : ''}
-                onClick={() => setSelectedNav('about')}
-              >about</a>
-              <a
-                href="#contact"
-                className={selectedNav === 'contact' ? 'nav-selected' : ''}
-                onClick={() => setSelectedNav('contact')}
-              >contact</a>
-            </nav>
+
+            <nav
+  className="nav"
+  style={{
+    width: '100vw',
+    display: 'flex',
+    justifyContent: 'center',
+    gap: 24,
+    marginTop: 8,
+    flexDirection: 'row-reverse',
+    padding: '20px 40px',
+    background: '#232323',
+    border: '2px solid #00F0FF',
+    borderRadius: '16px',
+    margin: '8px 20px',
+    fontSize: '12px',
+  }}
+>
+  <a
+    href="#hero"
+    className={selectedNav === 'home' ? 'nav-selected' : ''}
+    onClick={() => setSelectedNav('home')}
+    style={{ fontSize: '15px' }}
+  >
+    דף הבית
+  </a>
+  <a
+    href="#works"
+    className={selectedNav === 'works' ? 'nav-selected' : ''}
+    onClick={() => setSelectedNav('works')}
+    style={{ fontSize: '15px' }}
+  >
+    עבודות
+  </a>
+  <a
+    href="#about"
+    className={selectedNav === 'about' ? 'nav-selected' : ''}
+    onClick={() => setSelectedNav('about')}
+    style={{ fontSize: '15px' }}
+  >
+    על עצמי
+  </a>
+  <a
+    href="#contact"
+    className={selectedNav === 'contact' ? 'nav-selected' : ''}
+    onClick={() => setSelectedNav('contact')}
+    style={{ fontSize: '15px' }}
+  >
+    צרו קשר
+  </a>
+</nav>
           </>
         ) : (
-          <>
-            <div>
-              <div className="mobile-portfolio-title"
-                style={{
-                  color: '#e5ff00',
-                  fontWeight: 'bold',
-                  fontSize: '1.8rem',
-                  textAlign: 'left',
-                  display: 'block',
-                  background: '#232323',
-                  border: '2px solid #e5ff00',
-                  borderRadius: 16,
-                  padding: '4px 16px',
-                }}
-              >Portfolio</div>
-              <div className={`${styles.logo} ${styles['mobile-only']}`}>
-                <span style={{
-                  color: '#e5ff00',
-                  fontWeight: 'bold',
-                  fontFamily: 'inherit',
-                  fontSize: '1.8rem',
-                  textAlign: 'left',
-                  display: 'block',
-                  background: '#232323',
-                  border: '2px solid #e5ff00',
-                  borderRadius: 16,
-                  padding: '4px 16px',
-                }}>Portfolio</span>
-              </div>
-            </div>
-            <nav className="nav" style={{ flex: 1, display: 'flex', justifyContent: 'center', gap: 40 }}>
+
+            <nav className="nav" style={{ flex: 1, display: 'flex', justifyContent: 'flex-start', gap: 40, flexDirection: 'row-reverse', padding: '20px 40px', background: '#232323', border: '2px solid #00F0FF', borderRadius: '16px', margin: '8px 20px', fontSize: '48px' }}>
               <a
                 href="#hero"
                 className={selectedNav === 'home' ? 'nav-selected' : ''}
                 onClick={() => setSelectedNav('home')}
-              >home</a>
+                style={{ fontSize: '22px' }}
+              >דף הבית</a>
               <a
                 href="#works"
                 className={selectedNav === 'works' ? 'nav-selected' : ''}
                 onClick={() => setSelectedNav('works')}
-              >works</a>
+                style={{ fontSize: '22px' }}
+              >עבודות</a>
               <a
                 href="#about"
                 className={selectedNav === 'about' ? 'nav-selected' : ''}
                 onClick={() => setSelectedNav('about')}
-              >about</a>
+                style={{ fontSize: '22px' }}
+              >על עצמי</a>
               <a
                 href="#contact"
                 className={selectedNav === 'contact' ? 'nav-selected' : ''}
                 onClick={() => setSelectedNav('contact')}
-              >contact</a>
+                style={{ fontSize: '22px' }}
+              >צרו קשר</a>
             </nav>
-            <button
-              onClick={() => setAudioOn((on) => !on)}
-              style={{
-                position: 'absolute',
-                top: 12,
-                right: 18,
-                background: '#232323',
-                border: '2px solid #e5ff00',
-                borderRadius: '50%',
-                boxShadow: audioOn
-                  ? '0 0 8px 3px #e5ff00, 0 0 16px 6px #e5ff00aa'
-                  : '0 2px 12px #e5ff0033',
-                cursor: 'pointer',
-                zIndex: 1000,
-                padding: 0,
-                width: 44,
-                height: 44,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'box-shadow 0.2s',
-              }}
-              aria-label={audioOn ? 'כבה מוזיקה' : 'נגן מוזיקה'}
-            >
-              {audioOn ? (
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="#e5ff00" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M3 9v6h4l5 5V4L7 9H3z"/>
-                  <path d="M16.5 12c0-1.77-1-3.29-2.5-4.03v8.06A4.978 4.978 0 0016.5 12z"/>
-                  <path d="M14 3.23v2.06c3.39.49 6 3.39 6 6.71s-2.61 6.22-6 6.71v2.06c4.5-.52 8-4.31 8-8.77s-3.5-8.25-8-8.77z"/>
-                </svg>
-              ) : (
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="#e5ff00" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M16.5 12c0-1.77-1-3.29-2.5-4.03v8.06A4.978 4.978 0 0016.5 12z"/>
-                  <path d="M3 9v6h4l5 5V4L7 9H3z"/>
-                </svg>
-              )}
-            </button>
-          </>
+
         )}
       </header>
 
       {/* HERO */}
       <section className="hero" id="hero">
         <h1 className="main-title">DANIEL NAMIMI-DIGITAL MARKETING</h1>
-        <div className="hero-img-glow" style={{ position: 'relative', width: 230, height: 230 }}>
+        <div className="hero-img-glow" style={{ position: 'relative', width: 200, height: 200 }}>
           <div
             className="hero-img-circle"
-            // הסרתי את ref והאנימציה של העיגול
             style={{
-              width: 230,
-              height: 230,
+              width: 200,
+              height: 200,
               borderRadius: '50%',
-              border: '6px solid #e5ff00',
-              boxShadow: '0 0 40px 8px #e5ff00cc, 0 0 80px 16px #e5ff0066',
+              border: '6px solid #00F0FF',
+              boxShadow: isMobile 
+                ? '0 0 8px 2px #00F0FFcc, 0 0 16px 4px #00F0FF66'
+                : '0 0 40px 8px #00F0FFcc, 0 0 80px 16px #00F0FF66',
               position: 'absolute',
               top: 0,
               left: 0,
               zIndex: 1,
-              background: '#232323',
+              background: '#00F0FF',
             }}
           />
           <Image
-            src="/user-photo.png"
+            src="/profilecircle.png"
             alt="User photo"
             width={200}
             height={200}
@@ -739,15 +590,15 @@ export default function Home() {
             priority
             style={{
               position: 'absolute',
-              top: 15,
-              left: 15,
+              top: 0,
+              left: 0,
               width: 200,
               height: 200,
               borderRadius: '50%',
               objectFit: 'cover',
               zIndex: 2,
               pointerEvents: 'none',
-              background: '#232323',
+              background: '#00F0FF',
             }}
           />
         </div>
@@ -761,7 +612,7 @@ export default function Home() {
           <button className="cta-primary" onClick={() => {
             const el = document.getElementById('lead-form-section');
             if (el) el.scrollIntoView({ behavior: 'smooth' });
-          }}>לקבלת לידים חמים 🚀</button>
+          }}>🚀 לקבלת לידים חמים</button>
           <button className="cta-outline" onClick={() => {
             const el = document.getElementById('features');
             if (el) el.scrollIntoView({ behavior: 'smooth' });
@@ -776,21 +627,21 @@ export default function Home() {
           <button className="cta-primary" onClick={() => {
             const el = document.getElementById('lead-form-section');
             if (el) el.scrollIntoView({ behavior: 'smooth' });
-          }}>לקבלת לידים חמים 🚀</button>
+          }}>🚀 לקבלת לידים חמים</button>
         </div>
         {/* שינוי כאן: עוטף את ריבוע 'על עצמי' ב-section עם id="about" */}
         <section id="about">
           <div className="visual-separator-box" style={{margin:'120px auto 0 auto',width:'600px',height:'auto',border:'2px solid #fff',borderRadius:'24px',background:'#1e1e1e',padding:'32px',boxSizing:'border-box',display:'flex',alignItems:'flex-start',justifyContent:'center'}}>
             <div style={{width:'100%',maxWidth:'520px',margin:'0 auto',color:'#fff',fontWeight:500,fontSize:'1.13rem',letterSpacing:'0.5px',textAlign:'right',lineHeight:'1.85',background:'none',border:'none',padding:0, fontFamily: "Assistant, Arial, sans-serif"}}>
               <div style={{fontSize:'36px',fontWeight:800,color:'#fff',textAlign:'center',marginBottom:'24px'}}>על עצמי</div>
-              <p style={{margin:'0 0 18px 0', color:'#e5ff00'}}>.היי, נעים להכיר – דניאל נמימי</p>
+              <p style={{margin:'0 0 18px 0', color:'#00F0FF'}}>.היי, נעים להכיר – דניאל נמימי</p>
               <p style={{margin:'0 0 18px 0', direction: 'rtl', unicodeBidi: 'isolate'}}>מומחה לפרסום ושיווק דיגיטלי, בניית אתרים, דפי נחיתה ולוגואים חכמים מבוססי <span dir="ltr" style={{display: 'inline-block', whiteSpace: 'nowrap', unicodeBidi: 'isolate'}}>.Ai</span></p>
-              <p style={{margin:'0 0 18px 0', color:'#e5ff00'}}>
+              <p style={{margin:'0 0 18px 0', color:'#00F0FF'}}>
                 <span className="hide-on-mobile">אני עוזר לעסקים לא רק להיראות מקצועיים – אלא לבלוט, לגדול ולהביא תוצאות אמיתיות‮!‬</span>
                 <span className="show-on-mobile">אני עוזר לעסקים לא רק להיראות מקצועיים אלא לבלוט, לגדול ולהביא תוצאות אמיתיות‮!‬</span>
               </p>
               <p style={{margin:'0 0 18px 0'}}>,בין אם זה קמפיינים בפייסבוק או באינסטגרם<br/>:אני בונה עבורך מערכת שלמה שעובדת בקליק<br/>
-                <span style={{color:'#e5ff00'}}>
+                <span style={{color:'#00F0FF'}}>
                   <span className="hide-on-mobile">פרסום ממומן ← קבלת לידים חמים ← ועד לסגירה אוטומטית של לקוחות</span>
                   <span className="show-on-mobile" dir="rtl">פרסום ממומן ← קבלת לידים חמים ←<br/>ועד לסגירה אוטומטית של לקוחות</span>
                 </span>
@@ -840,7 +691,7 @@ export default function Home() {
                     <img src="/lia.png" alt="דפי נחיתה" className="feature-img-half feature-img-half-left" onClick={() => setModalImg('/lia.png')} style={{ cursor: 'pointer' }} />
                   </div>
                 </div>
-                <RotatingTextFeatureCard index={featureIndex} slide={featureSlide} />
+                <RotatingTextFeatureCard />
               </div>
               <div className="feature-card-group">
                 <div className="feature-card feature-card-img">
@@ -849,7 +700,7 @@ export default function Home() {
                     <img src="/arik1.png" alt="קמפיין 2" className="feature-img-half feature-img-half-left" onClick={() => setModalImg('/arik1.png')} style={{ cursor: 'pointer' }} />
                   </div>
                 </div>
-                <RotatingTextFeatureCard2 index={featureIndex} slide={featureSlide} />
+                <RotatingTextFeatureCard2 />
               </div>
             </>
           )}
@@ -926,18 +777,7 @@ export default function Home() {
           </form>
         </section>
         {/* שורת תמונות מתחת לטופס לידים */}
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', margin: '32px 0' }}>
-          <img src="/messenger.png" alt="Messenger" style={{ width: 68, height: 68, objectFit: 'cover', borderRadius: '16px' }} />
-          <a href="https://www.facebook.com/daniel%20namimi" target="_blank" rel="noopener noreferrer">
-            <img src="/meta.png" alt="Meta" style={{ width: 68, height: 68, objectFit: 'cover', borderRadius: '16px', cursor: 'pointer' }} />
-          </a>
-          <a href="https://instagram.com/daniel.namimi" target="_blank" rel="noopener noreferrer">
-            <img src="/instangram.png" alt="Instagram" style={{ width: 68, height: 68, objectFit: 'cover', borderRadius: '16px', cursor: 'pointer' }} />
-          </a>
-          <a href="https://wa.me/972544920882?text=%D7%94%D7%99%D7%99%2C%20%D7%90%D7%A9%D7%9E%D7%97%20%D7%9C%D7%A4%D7%A8%D7%98%D7%99%D7%9D%20%D7%A0%D7%95%D7%A1%D7%A4%D7%99%D7%9D%20%D7%A2%D7%9C%20%D7%94%D7%A9%D7%99%D7%A8%D7%95%D7%AA%D7%99%D7%9D%20%D7%A9%D7%90%D7%AA%D7%94%20%D7%9E%D7%A6%D7%99%D7%A2." target="_blank" rel="noopener noreferrer">
-            <img src="/WhatsApp.png" alt="WhatsApp" style={{ width: 68, height: 68, objectFit: 'cover', borderRadius: '16px', cursor: 'pointer' }} />
-          </a>
-        </div>
+        {/* נמחקו אייקוני האפליקציות Messenger, Facebook/Meta, Instagram, WhatsApp לפי בקשת המשתמש */}
       </section>
 
       {/* STANDARDS */}
@@ -953,7 +793,7 @@ export default function Home() {
       <div style={{ display: 'flex', justifyContent: 'center', margin: '40px 0 0 0' }}>
         <button
           onClick={() => { setShowPassword(true); setError(""); setPassword(""); }}
-          style={{ background: '#e5ff00', color: '#232323', fontWeight: 800, border: 'none', borderRadius: 16, padding: '14px 36px', fontSize: 20, cursor: 'pointer', boxShadow: '0 2px 16px 0 #e5ff0033' }}
+          style={{ background: '#00F0FF', color: '#232323', fontWeight: 800, border: 'none', borderRadius: 16, padding: '14px 36px', fontSize: 20, cursor: 'pointer', boxShadow: '0 2px 16px 0 #00F0FF33' }}
         >
           קוד מנהל
         </button>
@@ -962,12 +802,12 @@ export default function Home() {
       {showPassword && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: '#000a', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: '#232323', borderRadius: 18, padding: 32, boxShadow: '0 4px 32px #0008', minWidth: 320 }}>
-            <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 18, color: '#e5ff00' }}>הזן קוד מנהל</div>
+            <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 18, color: '#00F0FF' }}>הזן קוד מנהל</div>
             <input
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              style={{ width: '100%', padding: 12, fontSize: 18, borderRadius: 10, border: '1px solid #e5ff00', marginBottom: 16, direction: 'ltr' }}
+              style={{ width: '100%', padding: 12, fontSize: 18, borderRadius: 10, border: '1px solid #00F0FF', marginBottom: 16, direction: 'ltr' }}
               autoFocus
               onKeyDown={e => { if (e.key === 'Enter') { if (password === 'namimi') { setShowAdmin(true); setShowPassword(false); } else { setError('סיסמה שגויה'); } } }}
             />
@@ -976,13 +816,13 @@ export default function Home() {
                 if (password === 'namimi') { setShowAdmin(true); setShowPassword(false); }
                 else { setError('סיסמה שגויה'); }
               }}
-              style={{ background: '#e5ff00', color: '#232323', fontWeight: 800, border: 'none', borderRadius: 12, padding: '10px 24px', fontSize: 18, cursor: 'pointer', marginRight: 8 }}
+              style={{ background: '#00F0FF', color: '#232323', fontWeight: 800, border: 'none', borderRadius: 12, padding: '10px 24px', fontSize: 18, cursor: 'pointer', marginRight: 8 }}
             >
               אישור
             </button>
             <button
               onClick={() => setShowPassword(false)}
-              style={{ background: 'transparent', color: '#e5ff00', fontWeight: 700, border: 'none', borderRadius: 12, padding: '10px 24px', fontSize: 16, cursor: 'pointer' }}
+              style={{ background: 'transparent', color: '#00F0FF', fontWeight: 700, border: 'none', borderRadius: 12, padding: '10px 24px', fontSize: 16, cursor: 'pointer' }}
             >
               ביטול
             </button>
@@ -1012,20 +852,20 @@ export default function Home() {
             minWidth: 320,
             maxWidth: 400,
             textAlign: 'center',
-            border: '2px solid #e5ff00'
+            border: '2px solid #00F0FF'
           }}>
             <div style={{ 
               fontWeight: 700, 
               fontSize: 20, 
               marginBottom: 24, 
-              color: '#e5ff00' 
+              color: '#00F0FF' 
             }}>
               הפרטים נשמרו, תודה!
             </div>
             <button
               onClick={() => setShowSuccessModal(false)}
               style={{ 
-                background: '#e5ff00', 
+                background: '#00F0FF', 
                 color: '#232323', 
                 fontWeight: 800, 
                 border: 'none', 
@@ -1066,7 +906,7 @@ export default function Home() {
           font-size: 28px;
           font-weight: 800;
           letter-spacing: 2px;
-          color: #e5ff00;
+          color: #00F0FF;
         }
         .nav {
           display: flex;
@@ -1082,7 +922,7 @@ export default function Home() {
           transition: color 0.2s;
         }
         .nav a:hover {
-          color: #e5ff00;
+          color: #00F0FF;
         }
         .hero {
           display: flex;
@@ -1105,18 +945,18 @@ export default function Home() {
           display: flex;
           align-items: center;
           justify-content: center;
-          width: 220px;
-          height: 220px;
+          width: 200px;
+          height: 200px;
           border-radius: 50%;
           background: transparent;
-          box-shadow: 0 0 120px 32px #e5ff00cc, 0 0 240px 64px #e5ff0066;
+          box-shadow: 0 0 120px 32px #00F0FFcc, 0 0 240px 64px #00F0FF66;
           margin-bottom: 56px;
           position: relative;
           z-index: 1;
         }
         @media (max-width: 600px) {
           .hero-img-glow {
-            box-shadow: 0 0 40px 10px #e5ff00cc, 0 0 80px 20px #e5ff0066;
+            box-shadow: 0 0 40px 10px #00F0FFcc, 0 0 80px 20px #00F0FF66;
           }
         }
         .hero-img-circle {
@@ -1127,12 +967,12 @@ export default function Home() {
           display: flex;
           align-items: center;
           justify-content: center;
-          border: 6px solid #e5ff00;
+          border: 6px solid #00F0FF;
 .feature-rotating-text,
 .feature-rotating-text.in,
 .feature-rotating-text.out,
 .feature-card .feature-rotating-text {
-  color: #e5ff00 !important;
+  color: #00F0FF !important;
   font-size: 1.7rem;
   font-weight: 800;
   font-family: inherit;
@@ -1175,7 +1015,7 @@ export default function Home() {
   transform: translateY(-32px);
 }
   .rotating-text {
-  color: #e5ff00 !important;
+  color: #00F0FF !important;
   font-family: 'Assistant', Arial, sans-serif !important;
   font-weight: bold !important;
   font-size: 2.2rem !important;
@@ -1219,7 +1059,7 @@ export default function Home() {
           }
         }
         .cta-primary {
-          background: #e5ff00;
+          background: #00F0FF;
           color: #1e1e1e;
           font-weight: 800;
           font-size: 16px;
@@ -1227,12 +1067,12 @@ export default function Home() {
           border-radius: 24px;
           padding: 16px 36px;
           text-transform: uppercase;
-          box-shadow: 0 2px 16px 0 #e5ff0033;
+          box-shadow: 0 2px 16px 0 #00F0FF33;
           cursor: pointer;
           transition: box-shadow 0.2s, transform 0.2s;
         }
         .cta-primary:hover {
-          box-shadow: 0 4px 32px 0 #e5ff0066;
+          box-shadow: 0 4px 32px 0 #00F0FF66;
           transform: scale(1.04);
         }
         .cta-outline {
@@ -1248,8 +1088,8 @@ export default function Home() {
           transition: border 0.2s, color 0.2s, background 0.2s;
         }
         .cta-outline:hover {
-          color: #e5ff00;
-          border-color: #e5ff00;
+          color: #00F0FF;
+          border-color: #00F0FF;
           background: #232323;
         }
         .carousel {
@@ -1275,7 +1115,7 @@ export default function Home() {
         }
         .carousel-item:hover {
           transform: translateY(-8px) scale(1.03);
-          box-shadow: 0 8px 32px 0 #e5ff0033;
+          box-shadow: 0 8px 32px 0 #00F0FF33;
         }
         .carousel-img-wrap {
           width: 100%;
@@ -1330,7 +1170,7 @@ export default function Home() {
           width: 100%;
           height: 380px;
           overflow: hidden;
-          border: 4px solid #e5ff00 !important;
+          border: 4px solid #00F0FF !important;
           background: #191919 !important;
           border-radius: 18px !important;
         }
@@ -1374,7 +1214,7 @@ export default function Home() {
         }
         .page-card:hover {
           transform: translateY(-6px) scale(1.03);
-          box-shadow: 0 8px 32px 0 #e5ff0033;
+          box-shadow: 0 8px 32px 0 #00F0FF33;
         }
         .page-thumb {
           margin-bottom: 12px;
@@ -1437,7 +1277,7 @@ export default function Home() {
           margin-bottom: 16px;
         }
         .standards-title {
-          color: #e5ff00;
+          color: #00F0FF;
           font-size: 20px;
           font-weight: 800;
           margin-bottom: 6px;
@@ -1512,7 +1352,7 @@ export default function Home() {
           transition: color 0.2s;
         }
         .footer-links a:hover {
-          color: #e5ff00;
+          color: #00F0FF;
         }
         .lead-form-section {
           max-width: 500px;
@@ -1528,7 +1368,7 @@ export default function Home() {
           flex-direction: column;
           gap: 28px;
           box-shadow: 0 2px 24px 0 #0008;
-          border: 2.5px solid #e5ff00;
+          border: 2.5px solid #00F0FF;
         }
         .lead-form-title-row {
           display: flex;
@@ -1569,7 +1409,7 @@ export default function Home() {
           width: 100%;
           padding: 14px 16px;
           border-radius: 12px;
-          border: 2px solid #e5ff00;
+          border: 2px solid #00F0FF;
           background: #fff;
           color: #232323;
           font-size: 18px;
@@ -1579,7 +1419,7 @@ export default function Home() {
           direction: rtl;
         }
         .lead-form input:focus {
-          border: 2.5px solid #e5ff00;
+          border: 2.5px solid #00F0FF;
         }
         .lead-form button.cta-primary {
           margin-top: 24px;
@@ -1599,7 +1439,7 @@ export default function Home() {
           justify-content: center;
         }
         .hero-static-text {
-          color: #e5ff00;
+          color: #00F0FF;
           font-size: 4.2rem;
           font-weight: 900;
           text-align: center;
@@ -1696,7 +1536,7 @@ export default function Home() {
           box-shadow: 0 2px 16px 0 #0004;
         }
         .feature-card-title {
-          color: #e5ff00;
+          color: #00F0FF;
           font-size: 1.5rem;
           font-weight: 800;
           margin-top: 18px;
@@ -1720,7 +1560,7 @@ export default function Home() {
           }
         }
         .rotating-text {
-          color: #e5ff00;
+          color: #00F0FF;
           font-size: 3.2rem;
           font-weight: 800;
           font-family: inherit;
@@ -1752,7 +1592,7 @@ export default function Home() {
           margin: 24px 0 12px 0;
         }
         .hero-logo-rotating-text {
-          color: #e5ff00;
+          color: #00F0FF;
           font-size: 2.1rem;
           font-weight: 800;
           font-family: inherit;
@@ -1781,7 +1621,7 @@ export default function Home() {
           margin-top: -32px;
         }
         .nav-selected {
-          color: #e5ff00 !important;
+          color: #00F0FF !important;
         }
         @media (max-width: 600px) {
           .visual-separator-box {
