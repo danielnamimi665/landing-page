@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import styles from './page.module.css';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -268,15 +268,13 @@ function RotatingTextMobileCard1() {
           }
         }
         .feature-rotating-text {
-          transition: transform 0.3s cubic-bezier(.4,2,.6,1), opacity 0.3s;
+          transition: opacity 0.6s cubic-bezier(.4,2,.6,1);
         }
         .feature-rotating-text.in {
           opacity: 1;
-          transform: translateY(0);
         }
         .feature-rotating-text.out {
           opacity: 0;
-          transform: translateY(-32px);
         }
       `}</style>
     </span>
@@ -316,15 +314,13 @@ function RotatingTextMobileCard2() {
           }
         }
         .feature-rotating-text {
-          transition: transform 0.3s cubic-bezier(.4,2,.6,1), opacity 0.3s;
+          transition: opacity 0.6s cubic-bezier(.4,2,.6,1);
         }
         .feature-rotating-text.in {
           opacity: 1;
-          transform: translateY(0);
         }
         .feature-rotating-text.out {
           opacity: 0;
-          transform: translateY(-32px);
         }
       `}</style>
     </span>
@@ -358,20 +354,47 @@ export default function Home() {
   const [selectedNav, setSelectedNav] = useState('home');
   const [isRotating, setIsRotating] = useState(false);
   // State for modal image
-  const [modalImg, setModalImg] = useState<string | null>(null);
+  const [modalImgIndex, setModalImgIndex] = useState<number | null>(null);
   const [showAdmin, setShowAdmin] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  // דמו נתוני לידים עם תאריך
-  const [leads, setLeads] = useState([
-    { name: "דני כהן", phone: "050-1234567", occupation: "עיצוב גרפי", date: new Date() },
-    { name: "רוני לוי", phone: "052-7654321", occupation: "קוסמטיקה", date: new Date(Date.now() - 86400000) }, // אתמול
-  ]);
+  // סטייט ללידים
+  const [leads, setLeads] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   // סטייט ללוח שנה וסינון
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [filterMode, setFilterMode] = useState<'all' | 'today' | 'yesterday' | 'date'>('all');
+  // For swipe
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [iframeLoaded, setIframeLoaded] = useState({ adir: false, lia: false });
+
+  // 1. Add galleryImages array at the top of Home
+  const galleryImages = [
+    '/arik.png',
+    '/arik1.png',
+    '/lia.png',
+    '/adir.png',
+  ];
+
+  // טוען לידים מהשרת
+  const loadLeads = async () => {
+    try {
+      const response = await fetch('/api/leads');
+      if (response.ok) {
+        const data = await response.json();
+        setLeads(data.map((lead: any) => ({ ...lead, date: new Date(lead.date) })));
+      }
+    } catch (error) {
+      console.error('Error loading leads:', error);
+    }
+  };
+
+  // טוען לידים בטעינת הדף
+  useEffect(() => {
+    loadLeads();
+  }, []);
 
   // סינון לידים
   const filteredLeads = leads.filter(lead => {
@@ -382,36 +405,50 @@ export default function Home() {
     return true;
   });
 
-  // עדכון תאריך בליד חדש
-  const handleFormSubmit = (e: React.FormEvent) => {
+  // שליחת ליד חדש לשרת
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const formData = new FormData(e.target as HTMLFormElement);
-    const newLead = {
-      name: formData.get('fullName') as string,
-      phone: formData.get('phone') as string,
-      occupation: formData.get('businessField') as string,
-      date: new Date(),
-    };
-    setLeads(prevLeads => [...prevLeads, newLead]);
-    setShowSuccessModal(true);
-    (e.target as HTMLFormElement).reset();
+    setIsLoading(true);
+    
+    try {
+      const formData = new FormData(e.target as HTMLFormElement);
+      const leadData = {
+        name: formData.get('fullName') as string,
+        phone: formData.get('phone') as string,
+        email: '',
+        message: formData.get('businessField') as string || '',
+      };
+
+      const response = await fetch('/api/leads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(leadData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setLeads(prevLeads => [...prevLeads, { ...result.lead, date: new Date(result.lead.date) }]);
+        setShowSuccessModal(true);
+        (e.target as HTMLFormElement).reset();
+      } else {
+        console.error('Failed to save lead');
+      }
+    } catch (error) {
+      console.error('Error submitting lead:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // טוען לידים מה-localStorage אם קיימים
+  const scrollTargetRef = useRef<HTMLImageElement | null>(null);
   useEffect(() => {
-    const stored = localStorage.getItem('leads');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        // ודא שהשדה date הוא אובייקט Date
-        setLeads(parsed.map((lead: any) => ({ ...lead, date: new Date(lead.date) })));
-      } catch {}
+    if (isMobile && modalImgIndex !== null && scrollTargetRef.current) {
+      scrollTargetRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-  }, []);
-  // שומר לידים ב-localStorage בכל שינוי
-  useEffect(() => {
-    localStorage.setItem('leads', JSON.stringify(leads));
-  }, [leads]);
+    // eslint-disable-next-line
+  }, [modalImgIndex, isMobile]);
 
   if (showAdmin) {
     return (
@@ -452,7 +489,7 @@ export default function Home() {
               <tr key={idx} style={{ borderBottom: '1px solid #444' }}>
                 <td style={{ padding: 12 }}>{lead.name}</td>
                 <td style={{ padding: 12 }}>{lead.phone}</td>
-                <td style={{ padding: 12 }}>{lead.occupation}</td>
+                <td style={{ padding: 12 }}>{lead.message || lead.occupation || '-'}</td>
                 <td style={{ padding: 12 }}>{format(lead.date, 'dd/MM/yyyy')}</td>
               </tr>
             ))}
@@ -632,21 +669,21 @@ export default function Home() {
         {/* שינוי כאן: עוטף את ריבוע 'על עצמי' ב-section עם id="about" */}
         <section id="about">
           <div className="visual-separator-box" style={{margin:'120px auto 0 auto',width:'600px',height:'auto',border:'2px solid #fff',borderRadius:'24px',background:'#1e1e1e',padding:'32px',boxSizing:'border-box',display:'flex',alignItems:'flex-start',justifyContent:'center'}}>
-            <div style={{width:'100%',maxWidth:'520px',margin:'0 auto',color:'#fff',fontWeight:500,fontSize:'1.13rem',letterSpacing:'0.5px',textAlign:'right',lineHeight:'1.85',background:'none',border:'none',padding:0, fontFamily: "Assistant, Arial, sans-serif"}}>
-              <div style={{fontSize:'36px',fontWeight:800,color:'#fff',textAlign:'center',marginBottom:'24px'}}>על עצמי</div>
-              <p style={{margin:'0 0 18px 0', color:'#00F0FF'}}>.היי, נעים להכיר – דניאל נמימי</p>
-              <p style={{margin:'0 0 18px 0', direction: 'rtl', unicodeBidi: 'isolate'}}>מומחה לפרסום ושיווק דיגיטלי, בניית אתרים, דפי נחיתה ולוגואים חכמים מבוססי <span dir="ltr" style={{display: 'inline-block', whiteSpace: 'nowrap', unicodeBidi: 'isolate'}}>.Ai</span></p>
+            <div style={{width:'100%',maxWidth:'520px',margin:'0 auto',color:'#fff',fontWeight:900,fontSize:'1.13rem',letterSpacing:'0.5px',textAlign:'right',lineHeight:'1.85',background:'none',border:'none',padding:0, fontFamily: "Arial, sans-serif"}}>
+              <div style={{fontSize:'36px',fontWeight:900,color:'#fff',textAlign:'center',marginBottom:'24px', fontFamily: 'Arial, sans-serif'}}>על עצמי</div>
+              <p style={{margin:'0 0 18px 0', color:'#00F0FF', fontWeight:900, fontFamily: 'Arial, sans-serif'}}>.היי, נעים להכיר – דניאל נמימי</p>
+              <p style={{margin:'0 0 18px 0', direction: 'rtl', unicodeBidi: 'isolate', fontWeight:900, fontFamily: 'Arial, sans-serif'}}>מומחה לפרסום ושיווק דיגיטלי, בניית אתרים, דפי נחיתה ולוגואים חכמים מבוססי <span dir="ltr" style={{display: 'inline-block', whiteSpace: 'nowrap', unicodeBidi: 'isolate'}}>Ai</span></p>
               <p style={{margin:'0 0 18px 0', color:'#00F0FF'}}>
-                <span className="hide-on-mobile">אני עוזר לעסקים לא רק להיראות מקצועיים – אלא לבלוט, לגדול ולהביא תוצאות אמיתיות‮!‬</span>
-                <span className="show-on-mobile">אני עוזר לעסקים לא רק להיראות מקצועיים אלא לבלוט, לגדול ולהביא תוצאות אמיתיות‮!‬</span>
+                <span className="hide-on-mobile" style={{fontWeight:900, fontFamily: 'Arial, sans-serif'}}>אני עוזר לעסקים לא רק להיראות מקצועיים – אלא לבלוט, לגדול ולהביא תוצאות אמיתיות‮!‬</span>
+                <span className="show-on-mobile" style={{fontWeight:900, fontFamily: 'Arial, sans-serif'}}>אני עוזר לעסקים לא רק להיראות מקצועיים אלא לבלוט, לגדול ולהביא תוצאות אמיתיות‮!‬</span>
               </p>
-              <p style={{margin:'0 0 18px 0'}}>,בין אם זה קמפיינים בפייסבוק או באינסטגרם<br/>:אני בונה עבורך מערכת שלמה שעובדת בקליק<br/>
+              <p style={{margin:'0 0 18px 0', fontWeight:900, fontFamily: 'Arial, sans-serif'}}>,בין אם זה קמפיינים בפייסבוק או באינסטגרם<br/>:אני בונה עבורך מערכת שלמה שעובדת בקליק<br/>
                 <span style={{color:'#00F0FF'}}>
                   <span className="hide-on-mobile">פרסום ממומן ← קבלת לידים חמים ← ועד לסגירה אוטומטית של לקוחות</span>
                   <span className="show-on-mobile" dir="rtl">פרסום ממומן ← קבלת לידים חמים ←<br/>ועד לסגירה אוטומטית של לקוחות</span>
                 </span>
               </p>
-              <p style={{margin:'0 0 18px 0'}}>היום כבר לא צריך לרדוף אחרי לקוחות ולידים-שיווק חכם ומדוייק גורם להם להגיע אליך</p>
+              <p style={{margin:'0 0 18px 0', fontWeight:900, fontFamily: 'Arial, sans-serif'}}>היום כבר לא צריך לרדוף אחרי לקוחות ולידים-שיווק חכם ומדוייק גורם להם להגיע אליך</p>
             </div>
           </div>
         </section>
@@ -668,16 +705,16 @@ export default function Home() {
               {/* Card 1: arik.png + arik1.png, text: פירסום ושיווק דיגיטלי (rotating) */}
               <div className="feature-card feature-card-img">
                 <div className="feature-img-split">
-                  <img src="/arik.png" alt="arik" className="feature-img-half feature-img-half-right" onClick={() => setModalImg('/arik.png')} style={{ cursor: 'pointer' }} />
-                  <img src="/arik1.png" alt="arik1" className="feature-img-half feature-img-half-left" onClick={() => setModalImg('/arik1.png')} style={{ cursor: 'pointer' }} />
+                  <img src="/arik.png" alt="arik" className="feature-img-half feature-img-half-right" onClick={() => setModalImgIndex(0)} style={{ cursor: 'pointer' }} />
+                  <img src="/arik1.png" alt="arik1" className="feature-img-half feature-img-half-left" onClick={() => setModalImgIndex(1)} style={{ cursor: 'pointer' }} />
                 </div>
                 <RotatingTextMobileCard1 />
               </div>
               {/* Card 2: lia.png + adir.png, text: בניית אתרים (rotating) */}
               <div className="feature-card feature-card-img">
                 <div className="feature-img-split">
-                  <img src="/lia.png" alt="lia" className="feature-img-half feature-img-half-right" onClick={() => setModalImg('/lia.png')} style={{ cursor: 'pointer' }} />
-                  <img src="/adir.png" alt="adir" className="feature-img-half feature-img-half-left" onClick={() => setModalImg('/adir.png')} style={{ cursor: 'pointer' }} />
+                  <img src="/lia.png" alt="lia" className="feature-img-half feature-img-half-right" onClick={() => setModalImgIndex(2)} style={{ cursor: 'pointer' }} />
+                  <img src="/adir.png" alt="adir" className="feature-img-half feature-img-half-left" onClick={() => setModalImgIndex(3)} style={{ cursor: 'pointer' }} />
                 </div>
                 <RotatingTextMobileCard2 />
               </div>
@@ -687,8 +724,8 @@ export default function Home() {
               <div className="feature-card-group">
                 <div className="feature-card feature-card-img">
                   <div className="feature-img-split">
-                    <img src="/adir.png" alt="אתרים" className="feature-img-half feature-img-half-right" onClick={() => setModalImg('/adir.png')} style={{ cursor: 'pointer' }} />
-                    <img src="/lia.png" alt="דפי נחיתה" className="feature-img-half feature-img-half-left" onClick={() => setModalImg('/lia.png')} style={{ cursor: 'pointer' }} />
+                    <img src="/adir.png" alt="אתרים" className="feature-img-half feature-img-half-right" onClick={() => setModalImgIndex(0)} style={{ cursor: 'pointer' }} />
+                    <img src="/lia.png" alt="דפי נחיתה" className="feature-img-half feature-img-half-left" onClick={() => setModalImgIndex(1)} style={{ cursor: 'pointer' }} />
                   </div>
                 </div>
                 <RotatingTextFeatureCard />
@@ -696,8 +733,8 @@ export default function Home() {
               <div className="feature-card-group">
                 <div className="feature-card feature-card-img">
                   <div className="feature-img-split">
-                    <img src="/arik.png" alt="קמפיין 1" className="feature-img-half feature-img-half-right" onClick={() => setModalImg('/arik.png')} style={{ cursor: 'pointer' }} />
-                    <img src="/arik1.png" alt="קמפיין 2" className="feature-img-half feature-img-half-left" onClick={() => setModalImg('/arik1.png')} style={{ cursor: 'pointer' }} />
+                    <img src="/arik.png" alt="קמפיין 1" className="feature-img-half feature-img-half-right" onClick={() => setModalImgIndex(2)} style={{ cursor: 'pointer' }} />
+                    <img src="/arik1.png" alt="קמפיין 2" className="feature-img-half feature-img-half-left" onClick={() => setModalImgIndex(3)} style={{ cursor: 'pointer' }} />
                   </div>
                 </div>
                 <RotatingTextFeatureCard2 />
@@ -707,29 +744,33 @@ export default function Home() {
         </div>
       </section>
       {/* מודאל תמונה */}
-      {modalImg && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            background: 'rgba(0,0,0,0.85)',
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          onClick={() => setModalImg(null)}
-        >
-          <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }} onClick={e => e.stopPropagation()}>
+      {/* 4. Modal with swipe support */}
+      {modalImgIndex !== null && (
+        isMobile ? (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              background: 'rgba(0,0,0,0.92)',
+              zIndex: 9999,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'flex-start',
+              overflowY: 'auto',
+              paddingTop: 24,
+            }}
+            onClick={() => setModalImgIndex(null)}
+          >
             <button
-              onClick={() => setModalImg(null)}
+              onClick={e => { e.stopPropagation(); setModalImgIndex(null); }}
               style={{
-                position: 'absolute',
-                top: -24,
-                left: -24,
+                position: 'fixed',
+                top: 16,
+                left: 16,
                 background: '#fff',
                 border: 'none',
                 borderRadius: '50%',
@@ -748,9 +789,206 @@ export default function Home() {
             >
               ×
             </button>
-            <img src={modalImg} alt="תמונה מוגדלת" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 16, boxShadow: '0 4px 32px #0008' }} />
+            <div style={{ width: '100%', marginTop: 48 }}>
+              {galleryImages.slice().reverse().map((img, idx) => (
+                img === '/adir.png' ? (
+                  <div key="barber-shop-iframe-wrap" style={{ position: 'relative', width: '100vw', height: '70vh', margin: '32px 0' }}>
+                    <style>{spinnerStyle}</style>
+                    <iframe
+                      src="https://app--adir-barber-shop-2756bc66.base44.app/"
+                      style={{
+                        width: '100vw',
+                        height: '70vh',
+                        border: 'none',
+                        borderRadius: 16,
+                        boxShadow: '0 4px 32px #00F0FF',
+                        background: '#fff',
+                        display: iframeLoaded.adir ? 'block' : 'none',
+                      }}
+                      title="תספורת גברים"
+                      allowFullScreen
+                      onLoad={() => setIframeLoaded(l => ({ ...l, adir: true }))}
+                    />
+                    {!iframeLoaded.adir && (
+                      <div style={{ position: 'absolute', top:0, left:0, width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', background:'#fff' }}>
+                        <div className="iframe-spinner" />
+                      </div>
+                    )}
+                  </div>
+                ) : img === '/lia.png' ? (
+                  <div key="lia-nails-iframe-wrap" style={{ position: 'relative', width: '100vw', height: '70vh', margin: '32px 0' }}>
+                    <style>{spinnerStyle}</style>
+                    <iframe
+                      src="https://app--adir-barber-shop-copy-b6585698.base44.app/"
+                      style={{
+                        width: '100vw',
+                        height: '70vh',
+                        border: 'none',
+                        borderRadius: 16,
+                        boxShadow: '0 4px 32px #00F0FF',
+                        background: '#fff',
+                        display: iframeLoaded.lia ? 'block' : 'none',
+                      }}
+                      title="lia nails"
+                      allowFullScreen
+                      onLoad={() => setIframeLoaded(l => ({ ...l, lia: true }))}
+                    />
+                    {!iframeLoaded.lia && (
+                      <div style={{ position: 'absolute', top:0, left:0, width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', background:'#fff' }}>
+                        <div className="iframe-spinner" />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <img
+                    key={img}
+                    src={img}
+                    alt={`תמונה ${galleryImages.length - 1 - idx + 1}`}
+                    ref={(galleryImages.length - 1 - idx) === modalImgIndex ? scrollTargetRef : null}
+                    style={{
+                      width: '100vw',
+                      maxWidth: '100vw',
+                      height: 'auto',
+                      margin: '32px 0',
+                      borderRadius: 16,
+                      boxShadow: '0 4px 32px #00F0FF',
+                      border: '2px solid #00F0FF',
+                      opacity: (galleryImages.length - 1 - idx) === modalImgIndex ? 1 : 0.8,
+                      transition: 'all 0.4s cubic-bezier(.77,0,.18,1)',
+                    }}
+                    onClick={e => e.stopPropagation()}
+                  />
+                )
+              ))}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              background: 'rgba(0,0,0,0.85)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onClick={() => setModalImgIndex(null)}
+            onTouchStart={e => setTouchStartX(e.touches[0].clientX)}
+            onTouchEnd={e => {
+              if (touchStartX !== null) {
+                const touchEndX = e.changedTouches[0].clientX;
+                if (touchStartX - touchEndX > 50 && modalImgIndex < galleryImages.length - 1) {
+                  setModalImgIndex(modalImgIndex + 1);
+                } else if (touchEndX - touchStartX > 50 && modalImgIndex > 0) {
+                  setModalImgIndex(modalImgIndex - 1);
+                }
+              }
+              setTouchStartX(null);
+            }}
+          >
+            <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }} onClick={e => e.stopPropagation()}>
+              <button
+                onClick={() => setModalImgIndex(null)}
+                style={{
+                  position: 'absolute',
+                  top: -24,
+                  left: -24,
+                  background: '#fff',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: 40,
+                  height: 40,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 24,
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px #0002',
+                  zIndex: 10000,
+                }}
+                aria-label="סגור"
+              >
+                ×
+              </button>
+              {/* 6. Add left/right arrows for desktop */}
+              {modalImgIndex > 0 && (
+                <button
+                  onClick={() => setModalImgIndex(modalImgIndex - 1)}
+                  style={{ position: 'absolute', top: '50%', left: -40, transform: 'translateY(-50%)', fontSize: 32, background: 'none', border: 'none', color: '#fff', cursor: 'pointer', zIndex: 10001 }}
+                  aria-label="הקודם"
+                >
+                  {'<'}
+                </button>
+              )}
+              {modalImgIndex < galleryImages.length - 1 && (
+                <button
+                  onClick={() => setModalImgIndex(modalImgIndex + 1)}
+                  style={{ position: 'absolute', top: '50%', right: -40, transform: 'translateY(-50%)', fontSize: 32, background: 'none', border: 'none', color: '#fff', cursor: 'pointer', zIndex: 10001 }}
+                  aria-label="הבא"
+                >
+                  {'>'}
+                </button>
+              )}
+              {/* Show iframe for adir.png or lia.png, else show image */}
+              {galleryImages[modalImgIndex] === '/adir.png' ? (
+                <div key="barber-shop-iframe-desktop-wrap" style={{ position: 'relative', width: '80vw', height: '70vh' }}>
+                  <style>{spinnerStyle}</style>
+                  <iframe
+                    src="https://app--adir-barber-shop-2756bc66.base44.app/"
+                    style={{
+                      width: '80vw',
+                      height: '70vh',
+                      border: 'none',
+                      borderRadius: 16,
+                      boxShadow: '0 4px 32px #00F0FF',
+                      background: '#fff',
+                      display: iframeLoaded.adir ? 'block' : 'none',
+                    }}
+                    title="תספורת גברים"
+                    allowFullScreen
+                    onLoad={() => setIframeLoaded(l => ({ ...l, adir: true }))}
+                  />
+                  {!iframeLoaded.adir && (
+                    <div style={{ position: 'absolute', top:0, left:0, width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', background:'#fff' }}>
+                      <div className="iframe-spinner" />
+                    </div>
+                  )}
+                </div>
+              ) : galleryImages[modalImgIndex] === '/lia.png' ? (
+                <div key="lia-nails-iframe-desktop-wrap" style={{ position: 'relative', width: '80vw', height: '70vh' }}>
+                  <style>{spinnerStyle}</style>
+                  <iframe
+                    src="https://app--adir-barber-shop-copy-b6585698.base44.app/"
+                    style={{
+                      width: '80vw',
+                      height: '70vh',
+                      border: 'none',
+                      borderRadius: 16,
+                      boxShadow: '0 4px 32px #00F0FF',
+                      background: '#fff',
+                      display: iframeLoaded.lia ? 'block' : 'none',
+                    }}
+                    title="lia nails"
+                    allowFullScreen
+                    onLoad={() => setIframeLoaded(l => ({ ...l, lia: true }))}
+                  />
+                  {!iframeLoaded.lia && (
+                    <div style={{ position: 'absolute', top:0, left:0, width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', background:'#fff' }}>
+                      <div className="iframe-spinner" />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <img src={galleryImages[modalImgIndex]} alt="תמונה מוגדלת" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 16, boxShadow: '0 4px 32px #00F0FF', border: '2px solid #00F0FF' }} />
+              )}
+            </div>
+          </div>
+        )
       )}
 
       {/* GROWTH/LEAD FORM */}
@@ -759,7 +997,14 @@ export default function Home() {
           <form className="lead-form" onSubmit={handleFormSubmit}>
             <div className="lead-form-title-row">
               <span className="lead-form-colon">:</span>
-              <span className="lead-form-title">השאירו פרטים</span>
+              <span
+                className="lead-form-title"
+                style={{ cursor: 'pointer', color: showPassword ? '#00F0FF' : undefined, textDecoration: 'underline' }}
+                onClick={() => { setShowPassword(true); setError(""); setPassword(""); }}
+                title="כניסת מנהל"
+              >
+                השאירו פרטים
+              </span>
             </div>
             <div className="form-group">
               <label htmlFor="fullName">שם מלא</label>
@@ -769,11 +1014,18 @@ export default function Home() {
               <label htmlFor="phone">מספר טלפון</label>
               <input type="tel" id="phone" name="phone" required />
             </div>
+
             <div className="form-group">
               <label htmlFor="businessField">תחום העסק</label>
               <input type="text" id="businessField" name="businessField" required />
             </div>
-            <button type="submit" className="cta-primary lead-form-submit">שלח</button>
+            <button 
+              type="submit" 
+              className="cta-primary lead-form-submit"
+              disabled={isLoading}
+            >
+              {isLoading ? 'שולח...' : 'שלח'}
+            </button>
           </form>
         </section>
         {/* שורת תמונות מתחת לטופס לידים */}
@@ -790,19 +1042,19 @@ export default function Home() {
 
       {/* נגן שמע אוטומטי מוסתר - הוסר כדי למנוע הפעלה אוטומטית */}
       {/* כפתור קוד מנהל בתחתית האתר */}
-      <div style={{ display: 'flex', justifyContent: 'center', margin: '40px 0 0 0' }}>
+      {/* <div style={{ display: 'flex', justifyContent: 'center', margin: '40px 0 0 0' }}>
         <button
           onClick={() => { setShowPassword(true); setError(""); setPassword(""); }}
           style={{ background: '#00F0FF', color: '#232323', fontWeight: 800, border: 'none', borderRadius: 16, padding: '14px 36px', fontSize: 20, cursor: 'pointer', boxShadow: '0 2px 16px 0 #00F0FF33' }}
         >
           קוד מנהל
         </button>
-      </div>
+      </div> */}
       {/* תיבת קלט לסיסמה */}
-      {showPassword && (
+      {showPassword ? (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: '#000a', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: '#232323', borderRadius: 18, padding: 32, boxShadow: '0 4px 32px #0008', minWidth: 320 }}>
-            <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 18, color: '#00F0FF' }}>הזן קוד מנהל</div>
+            <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 18, color: '#00F0FF', textAlign: 'center' }}>הזן קוד מנהל</div>
             <input
               type="password"
               value={password}
@@ -811,25 +1063,29 @@ export default function Home() {
               autoFocus
               onKeyDown={e => { if (e.key === 'Enter') { if (password === 'namimi') { setShowAdmin(true); setShowPassword(false); } else { setError('סיסמה שגויה'); } } }}
             />
-            <button
-              onClick={() => {
-                if (password === 'namimi') { setShowAdmin(true); setShowPassword(false); }
-                else { setError('סיסמה שגויה'); }
-              }}
-              style={{ background: '#00F0FF', color: '#232323', fontWeight: 800, border: 'none', borderRadius: 12, padding: '10px 24px', fontSize: 18, cursor: 'pointer', marginRight: 8 }}
-            >
-              אישור
-            </button>
-            <button
-              onClick={() => setShowPassword(false)}
-              style={{ background: 'transparent', color: '#00F0FF', fontWeight: 700, border: 'none', borderRadius: 12, padding: '10px 24px', fontSize: 16, cursor: 'pointer' }}
-            >
-              ביטול
-            </button>
-            {error && <div style={{ color: 'red', marginTop: 12 }}>{error}</div>}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (password === 'namimi') { setShowAdmin(true); setShowPassword(false); }
+                  else { setError('סיסמה שגויה'); }
+                }}
+                style={{ background: '#00F0FF', color: '#232323', fontWeight: 800, border: 'none', borderRadius: 12, padding: '10px 24px', fontSize: 18, cursor: 'pointer' }}
+              >
+                אישור
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPassword(false)}
+                style={{ background: 'transparent', color: '#00F0FF', fontWeight: 700, border: 'none', borderRadius: 12, padding: '10px 24px', fontSize: 16, cursor: 'pointer' }}
+              >
+                ביטול
+              </button>
+            </div>
+            {error && <div style={{ color: 'red', marginTop: 12, textAlign: 'center' }}>{error}</div>}
           </div>
         </div>
-      )}
+      ) : null}
       {/* Success Modal */}
       {showSuccessModal && (
         <div style={{ 
@@ -1639,3 +1895,8 @@ export default function Home() {
     </div>
   );
 }
+
+const spinnerStyle = `
+@keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
+.iframe-spinner { border: 6px solid #e0f7fa; border-top: 6px solid #00F0FF; border-radius: 50%; width: 48px; height: 48px; animation: spin 1s linear infinite; }
+`;
