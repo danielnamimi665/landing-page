@@ -381,10 +381,14 @@ export default function Home() {
   // טוען לידים מהשרת
   const loadLeads = async () => {
     try {
+      console.log('Loading leads from server...');
       const response = await fetch('/api/leads');
       if (response.ok) {
         const data = await response.json();
+        console.log(`Loaded ${data.length} leads from server`);
         setLeads(data.map((lead: any) => ({ ...lead, date: new Date(lead.date) })));
+      } else {
+        console.error('Failed to load leads - response not ok:', response.status);
       }
     } catch (error) {
       console.error('Error loading leads:', error);
@@ -393,6 +397,7 @@ export default function Home() {
 
   // טוען לידים בטעינת הדף
   useEffect(() => {
+    console.log('Component mounted - loading leads for the first time');
     loadLeads();
   }, []);
 
@@ -419,6 +424,8 @@ export default function Home() {
         message: formData.get('businessField') as string || '',
       };
 
+      console.log('Submitting lead data:', leadData);
+
       const response = await fetch('/api/leads', {
         method: 'POST',
         headers: {
@@ -429,11 +436,20 @@ export default function Home() {
 
       if (response.ok) {
         const result = await response.json();
-        setLeads(prevLeads => [...prevLeads, { ...result.lead, date: new Date(result.lead.date) }]);
+        console.log('Lead saved successfully:', result.lead);
+        setLeads(prevLeads => {
+          const newLeads = [...prevLeads, { ...result.lead, date: new Date(result.lead.date) }];
+          console.log(`Updated leads state - now has ${newLeads.length} leads`);
+          return newLeads;
+        });
         setShowSuccessModal(true);
         (e.target as HTMLFormElement).reset();
+        
+        // Reload leads from server to ensure synchronization
+        await loadLeads();
       } else {
-        console.error('Failed to save lead');
+        const errorData = await response.json();
+        console.error('Failed to save lead:', response.status, errorData);
       }
     } catch (error) {
       console.error('Error submitting lead:', error);
