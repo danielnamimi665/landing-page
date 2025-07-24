@@ -599,7 +599,7 @@ export default function Home() {
 
       {/* HERO */}
       <section className="hero" id="hero">
-        <h1 className="main-title">DANIEL NAMIMI-DIGITAL MARKETING</h1>
+        <h1 className="main-title">פרסום ושיווק דיגיטלי</h1>
         <div className="hero-img-glow" style={{ position: 'relative', width: 200, height: 200 }}>
           <div
             className="hero-img-circle"
