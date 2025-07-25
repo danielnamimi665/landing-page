@@ -378,17 +378,14 @@ export default function Home() {
     '/adir.png',
   ];
 
-  // טוען לידים מהשרת
-  const loadLeads = async () => {
+  // טוען לידים מהזיכרון המקומי
+  const loadLeads = () => {
     try {
-      console.log('Loading leads from server...');
-      const response = await fetch('/api/leads');
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`Loaded ${data.length} leads from server`);
-        setLeads(data.map((lead: any) => ({ ...lead, date: new Date(lead.date) })));
-      } else {
-        console.error('Failed to load leads - response not ok:', response.status);
+      const savedLeads = localStorage.getItem('leads');
+      if (savedLeads) {
+        const parsedLeads = JSON.parse(savedLeads);
+        console.log(`Loaded ${parsedLeads.length} leads from localStorage`);
+        setLeads(parsedLeads.map((lead: any) => ({ ...lead, date: new Date(lead.date) })));
       }
     } catch (error) {
       console.error('Error loading leads:', error);
@@ -410,7 +407,7 @@ export default function Home() {
     return true;
   });
 
-  // שליחת ליד חדש לשרת
+  // שמירת ליד חדש
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -430,50 +427,50 @@ export default function Home() {
         return;
       }
 
-      const leadData = {
+      const newLead = {
+        id: Date.now().toString(),
         name,
         phone,
         email: '',
         message: businessField,
+        date: new Date().toISOString(),
+        timestamp: Date.now()
       };
 
-      console.log('Submitting lead data:', leadData);
+      console.log('Saving new lead:', newLead);
 
-      const response = await fetch('/api/leads', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(leadData),
+      // שמירת הליד החדש בזיכרון המקומי
+      setLeads(prevLeads => {
+        const newLeads = [...prevLeads, { ...newLead, date: new Date(newLead.date) }];
+        // שמירה ב-localStorage
+        localStorage.setItem('leads', JSON.stringify(newLeads));
+        console.log(`Updated leads - now has ${newLeads.length} leads`);
+        return newLeads;
       });
 
-      const result = await response.json();
-
-      if (response.ok) {
-        console.log('Lead saved successfully:', result.lead);
-        
-        // עדכון הלידים בזיכרון
-        setLeads(prevLeads => {
-          const newLeads = [...prevLeads, { ...result.lead, date: new Date(result.lead.date) }];
-          console.log(`Updated leads state - now has ${newLeads.length} leads`);
-          return newLeads;
-        });
-
-        // איפוס הטופס והצגת הודעת הצלחה
-        form.reset();
-        setShowSuccessModal(true);
-        
-        // טעינה מחדש של הלידים מהשרת
-        await loadLeads();
-      } else {
-        console.error('Failed to save lead:', response.status, result);
-        alert('אירעה שגיאה בשמירת הפרטים. נא לנסות שוב.');
-      }
+      // איפוס הטופס והצגת הודעת הצלחה
+      form.reset();
+      setShowSuccessModal(true);
+      
     } catch (error) {
-      console.error('Error submitting lead:', error);
+      console.error('Error saving lead:', error);
       alert('אירעה שגיאה בשמירת הפרטים. נא לנסות שוב.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // מחיקת ליד
+  const deleteLead = (id: string) => {
+    try {
+      setLeads(prevLeads => {
+        const newLeads = prevLeads.filter(lead => lead.id !== id);
+        localStorage.setItem('leads', JSON.stringify(newLeads));
+        return newLeads;
+      });
+    } catch (error) {
+      console.error('Error deleting lead:', error);
+      alert('אירעה שגיאה במחיקת הפרטים');
     }
   };
 
