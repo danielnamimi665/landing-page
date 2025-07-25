@@ -416,12 +416,25 @@ export default function Home() {
     setIsLoading(true);
     
     try {
-      const formData = new FormData(e.target as HTMLFormElement);
+      const form = e.target as HTMLFormElement;
+      const formData = new FormData(form);
+      
+      // בדיקת תקינות השדות
+      const name = formData.get('fullName') as string;
+      const phone = formData.get('phone') as string;
+      const businessField = formData.get('businessField') as string;
+      
+      if (!name || !phone || !businessField) {
+        alert('נא למלא את כל השדות');
+        setIsLoading(false);
+        return;
+      }
+
       const leadData = {
-        name: formData.get('fullName') as string,
-        phone: formData.get('phone') as string,
+        name,
+        phone,
         email: '',
-        message: formData.get('businessField') as string || '',
+        message: businessField,
       };
 
       console.log('Submitting lead data:', leadData);
@@ -434,25 +447,31 @@ export default function Home() {
         body: JSON.stringify(leadData),
       });
 
+      const result = await response.json();
+
       if (response.ok) {
-        const result = await response.json();
         console.log('Lead saved successfully:', result.lead);
+        
+        // עדכון הלידים בזיכרון
         setLeads(prevLeads => {
           const newLeads = [...prevLeads, { ...result.lead, date: new Date(result.lead.date) }];
           console.log(`Updated leads state - now has ${newLeads.length} leads`);
           return newLeads;
         });
+
+        // איפוס הטופס והצגת הודעת הצלחה
+        form.reset();
         setShowSuccessModal(true);
-        (e.target as HTMLFormElement).reset();
         
-        // Reload leads from server to ensure synchronization
+        // טעינה מחדש של הלידים מהשרת
         await loadLeads();
       } else {
-        const errorData = await response.json();
-        console.error('Failed to save lead:', response.status, errorData);
+        console.error('Failed to save lead:', response.status, result);
+        alert('אירעה שגיאה בשמירת הפרטים. נא לנסות שוב.');
       }
     } catch (error) {
       console.error('Error submitting lead:', error);
+      alert('אירעה שגיאה בשמירת הפרטים. נא לנסות שוב.');
     } finally {
       setIsLoading(false);
     }

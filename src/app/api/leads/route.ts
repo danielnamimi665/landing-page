@@ -7,12 +7,20 @@ const LEADS_FILE_PATH = path.join(process.cwd(), 'data', 'leads.json');
 // Log the file path on startup
 console.log('Leads file path:', LEADS_FILE_PATH);
 
-// Ensure data directory exists
+// Ensure data directory exists with proper permissions
 function ensureDataDirectory() {
   const dataDir = path.dirname(LEADS_FILE_PATH);
   if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
+    fs.mkdirSync(dataDir, { recursive: true, mode: 0o777 });
     console.log(`Created data directory: ${dataDir}`);
+  } else {
+    // וידוא שיש הרשאות כתיבה לתיקייה
+    try {
+      fs.accessSync(dataDir, fs.constants.W_OK);
+    } catch {
+      fs.chmodSync(dataDir, 0o777);
+      console.log(`Updated permissions for directory: ${dataDir}`);
+    }
   }
 }
 
@@ -38,6 +46,22 @@ function readLeads() {
 function writeLeads(leads: any[]) {
   try {
     ensureDataDirectory();
+    // בדיקה שהקובץ קיים ויש הרשאות כתיבה
+    const testWrite = () => {
+      try {
+        fs.accessSync(LEADS_FILE_PATH, fs.constants.W_OK);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    // אם הקובץ לא קיים או אין הרשאות, ננסה ליצור אותו
+    if (!testWrite()) {
+      fs.writeFileSync(LEADS_FILE_PATH, '[]', { mode: 0o666 });
+    }
+
+    // כתיבת הנתונים לקובץ
     fs.writeFileSync(LEADS_FILE_PATH, JSON.stringify(leads, null, 2));
     console.log(`Successfully wrote ${leads.length} leads to ${LEADS_FILE_PATH}`);
   } catch (error) {
