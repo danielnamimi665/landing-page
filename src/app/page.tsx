@@ -462,32 +462,42 @@ export default function Home() {
 
       console.log('שומר ליד חדש:', newLead);
 
-      // שמירת הליד בשרת
-      const response = await fetch('/api/leads', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newLead),
-      });
+      try {
+        // שמירת הליד בשרת
+        const response = await fetch('/api/leads', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(newLead),
+        });
 
-      if (!response.ok) {
-        throw new Error('שגיאה בשמירת הליד בשרת');
+        if (!response.ok) {
+          throw new Error('שגיאה בשמירת הליד בשרת');
+        }
+
+        const responseData = await response.json();
+        if (!responseData.success) {
+          throw new Error(responseData.error || 'שגיאה בשמירת הליד בשרת');
+        }
+
+        // שמירת הליד החדש בזיכרון המקומי
+        setLeads(prevLeads => {
+          const newLeads = [...prevLeads, { ...newLead, date: new Date(newLead.date) }];
+          // שמירה ב-localStorage
+          localStorage.setItem('leads', JSON.stringify(newLeads));
+          console.log(`עודכנו לידים - כעת יש ${newLeads.length} לידים`);
+          return newLeads;
+        });
+
+        // איפוס הטופס והצגת הודעת הצלחה
+        form.reset();
+        setShowSuccessModal(true);
+      } catch (error) {
+        console.error('שגיאה בשמירת ליד:', error);
+        alert('אירעה שגיאה בשמירת הפרטים. נא לנסות שוב.');
+        throw error;
       }
-
-      // שמירת הליד החדש בזיכרון המקומי
-      setLeads(prevLeads => {
-        const newLeads = [...prevLeads, { ...newLead, date: new Date(newLead.date) }];
-        // שמירה ב-localStorage
-        localStorage.setItem('leads', JSON.stringify(newLeads));
-        console.log(`עודכנו לידים - כעת יש ${newLeads.length} לידים`);
-        return newLeads;
-      });
-
-      // איפוס הטופס והצגת הודעת הצלחה
-      form.reset();
-      setShowSuccessModal(true);
-      
     } catch (error) {
       console.error('שגיאה בשמירת ליד:', error);
       alert('אירעה שגיאה בשמירת הפרטים. נא לנסות שוב.');

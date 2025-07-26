@@ -5,140 +5,158 @@ import path from 'path';
 const LEADS_FILE_PATH = path.join(process.cwd(), 'data', 'leads.json');
 
 // Log the file path on startup
-console.log('Leads file path:', LEADS_FILE_PATH);
+console.log('נתיב קובץ הלידים:', LEADS_FILE_PATH);
 
-// Ensure data directory exists with proper permissions
+// וידוא שתיקיית הנתונים קיימת עם הרשאות מתאימות
 function ensureDataDirectory() {
   const dataDir = path.dirname(LEADS_FILE_PATH);
   if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true, mode: 0o777 });
-    console.log(`Created data directory: ${dataDir}`);
-  } else {
-    // וידוא שיש הרשאות כתיבה לתיקייה
     try {
-      fs.accessSync(dataDir, fs.constants.W_OK);
-    } catch {
+      fs.mkdirSync(dataDir, { recursive: true });
       fs.chmodSync(dataDir, 0o777);
-      console.log(`Updated permissions for directory: ${dataDir}`);
+      console.log(`נוצרה תיקיית נתונים: ${dataDir}`);
+    } catch (error) {
+      console.error('שגיאה ביצירת תיקיית נתונים:', error);
+      throw new Error('לא ניתן ליצור את תיקיית הנתונים');
     }
   }
 }
 
-// Read leads from file
+// קריאת לידים מהקובץ
 function readLeads() {
   try {
     ensureDataDirectory();
     if (fs.existsSync(LEADS_FILE_PATH)) {
       const data = fs.readFileSync(LEADS_FILE_PATH, 'utf8');
       const leads = JSON.parse(data);
-      console.log(`Successfully read ${leads.length} leads from ${LEADS_FILE_PATH}`);
+      console.log(`נקראו ${leads.length} לידים מהקובץ ${LEADS_FILE_PATH}`);
       return leads;
     } else {
-      console.log(`Leads file does not exist at ${LEADS_FILE_PATH}, returning empty array`);
+      console.log(`קובץ הלידים לא קיים ב-${LEADS_FILE_PATH}, מחזיר מערך ריק`);
+      return [];
     }
   } catch (error) {
-    console.error('Error reading leads:', error);
+    console.error('שגיאה בקריאת לידים:', error);
+    throw new Error('לא ניתן לקרוא את קובץ הלידים');
   }
-  return [];
 }
 
-// Write leads to file
+// כתיבת לידים לקובץ
 function writeLeads(leads: any[]) {
   try {
     ensureDataDirectory();
-    // בדיקה שהקובץ קיים ויש הרשאות כתיבה
-    const testWrite = () => {
-      try {
-        fs.accessSync(LEADS_FILE_PATH, fs.constants.W_OK);
-        return true;
-      } catch {
-        return false;
-      }
-    };
-
-    // אם הקובץ לא קיים או אין הרשאות, ננסה ליצור אותו
-    if (!testWrite()) {
-      fs.writeFileSync(LEADS_FILE_PATH, '[]', { mode: 0o666 });
+    
+    // בדיקת הרשאות כתיבה
+    try {
+      fs.accessSync(path.dirname(LEADS_FILE_PATH), fs.constants.W_OK);
+    } catch {
+      fs.chmodSync(path.dirname(LEADS_FILE_PATH), 0o777);
     }
 
     // כתיבת הנתונים לקובץ
     fs.writeFileSync(LEADS_FILE_PATH, JSON.stringify(leads, null, 2));
-    console.log(`Successfully wrote ${leads.length} leads to ${LEADS_FILE_PATH}`);
+    console.log(`נכתבו ${leads.length} לידים לקובץ ${LEADS_FILE_PATH}`);
   } catch (error) {
-    console.error('Error writing leads:', error);
-    throw error; // Throw error to handle it in the API route
+    console.error('שגיאה בכתיבת לידים:', error);
+    throw new Error('לא ניתן לכתוב את קובץ הלידים');
   }
 }
 
-// GET - Retrieve all leads
+// GET - קבלת כל הלידים
 export async function GET() {
   try {
     const leads = readLeads();
-    console.log(`API GET: Returning ${leads.length} leads`);
-    return NextResponse.json(leads);
+    return NextResponse.json({ success: true, leads });
   } catch (error) {
-    console.error('Error fetching leads:', error);
-    return NextResponse.json({ error: 'Failed to fetch leads' }, { status: 500 });
+    console.error('שגיאה בקבלת לידים:', error);
+    return NextResponse.json(
+      { success: false, error: 'שגיאה בקבלת הלידים' },
+      { status: 500 }
+    );
   }
 }
 
-// POST - Add new lead
+// POST - הוספת ליד חדש
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { name, phone, email, message } = body;
     
-    console.log('Received new lead data:', { name, phone, email, message });
-    
+    // וידוא שדות חובה
     if (!name || !phone) {
-      return NextResponse.json({ error: 'Name and phone are required' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: 'שם וטלפון הם שדות חובה' },
+        { status: 400 }
+      );
     }
 
+    // יצירת ליד חדש
+    const now = new Date();
     const newLead = {
-      id: Date.now().toString(),
+      id: now.getTime().toString(),
       name,
       phone,
       email: email || '',
       message: message || '',
-      date: new Date().toISOString(),
-      timestamp: Date.now()
+      date: now.toISOString(),
+      timestamp: now.getTime()
     };
 
+    // קריאת הלידים הקיימים והוספת החדש
     const leads = readLeads();
     leads.push(newLead);
     
-    // Try to write leads and handle any errors
-    try {
-      writeLeads(leads);
-      console.log('Successfully saved lead with ID:', newLead.id);
-    } catch (writeError) {
-      console.error('Failed to write leads to file:', writeError);
-      return NextResponse.json({ error: 'Failed to save lead to file' }, { status: 500 });
-    }
+    // שמירת הלידים המעודכנים
+    writeLeads(leads);
 
-    return NextResponse.json({ success: true, lead: newLead });
+    return NextResponse.json({ 
+      success: true, 
+      lead: newLead,
+      message: 'הליד נשמר בהצלחה'
+    });
   } catch (error) {
-    console.error('Error saving lead:', error);
-    return NextResponse.json({ error: 'Failed to save lead' }, { status: 500 });
+    console.error('שגיאה בשמירת ליד:', error);
+    return NextResponse.json(
+      { success: false, error: 'שגיאה בשמירת הליד' },
+      { status: 500 }
+    );
   }
 }
 
-// DELETE - Delete a lead by ID
+// DELETE - מחיקת ליד לפי מזהה
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     
     if (!id) {
-      return NextResponse.json({ error: 'Lead ID is required' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: 'נדרש מזהה ליד למחיקה' },
+        { status: 400 }
+      );
     }
 
     const leads = readLeads();
     const filteredLeads = leads.filter((lead: any) => lead.id !== id);
+    
+    if (leads.length === filteredLeads.length) {
+      return NextResponse.json(
+        { success: false, error: 'הליד לא נמצא' },
+        { status: 404 }
+      );
+    }
+
     writeLeads(filteredLeads);
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      success: true,
+      message: 'הליד נמחק בהצלחה'
+    });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to delete lead' }, { status: 500 });
+    console.error('שגיאה במחיקת ליד:', error);
+    return NextResponse.json(
+      { success: false, error: 'שגיאה במחיקת הליד' },
+      { status: 500 }
+    );
   }
 } 
