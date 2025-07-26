@@ -417,8 +417,42 @@ export default function Home() {
 
   // טוען לידים בטעינת הדף
   useEffect(() => {
+    const fetchLeads = async () => {
+      try {
+        const response = await fetch('/api/leads');
+        if (!response.ok) {
+          throw new Error('שגיאה בטעינת הלידים');
+        }
+        const data = await response.json();
+        if (!data.success) {
+          throw new Error(data.error || 'שגיאה בטעינת הלידים');
+        }
+        
+        // המרת תאריכים למבנה Date
+        const formattedLeads = data.leads.map((lead: any) => ({
+          ...lead,
+          date: new Date(lead.date)
+        }));
+
+        setLeads(formattedLeads);
+        localStorage.setItem('leads', JSON.stringify(data.leads));
+      } catch (error) {
+        console.error('שגיאה בטעינת לידים:', error);
+        // אם יש שגיאה בטעינה מהשרת, ננסה לטעון מה-localStorage
+        try {
+          const savedLeads = localStorage.getItem('leads');
+          if (savedLeads) {
+            const parsedLeads = JSON.parse(savedLeads);
+            setLeads(parsedLeads.map((lead: any) => ({ ...lead, date: new Date(lead.date) })));
+          }
+        } catch (localError) {
+          console.error('שגיאה בטעינת לידים מהזיכרון המקומי:', localError);
+        }
+      }
+    };
+
     console.log('רכיב עלה - טוען לידים בפעם הראשונה');
-    loadLeads();
+    fetchLeads();
   }, []);
 
   // סינון לידים
@@ -451,7 +485,6 @@ export default function Home() {
       }
 
       const newLead = {
-        id: Date.now().toString(),
         name,
         phone,
         email: '',
@@ -462,42 +495,35 @@ export default function Home() {
 
       console.log('שומר ליד חדש:', newLead);
 
-      try {
-        // שמירת הליד בשרת
-        const response = await fetch('/api/leads', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(newLead),
-        });
+      // שמירת הליד בשרת
+      const response = await fetch('/api/leads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newLead),
+      });
 
-        if (!response.ok) {
-          throw new Error('שגיאה בשמירת הליד בשרת');
-        }
-
-        const responseData = await response.json();
-        if (!responseData.success) {
-          throw new Error(responseData.error || 'שגיאה בשמירת הליד בשרת');
-        }
-
-        // שמירת הליד החדש בזיכרון המקומי
-        setLeads(prevLeads => {
-          const newLeads = [...prevLeads, { ...newLead, date: new Date(newLead.date) }];
-          // שמירה ב-localStorage
-          localStorage.setItem('leads', JSON.stringify(newLeads));
-          console.log(`עודכנו לידים - כעת יש ${newLeads.length} לידים`);
-          return newLeads;
-        });
-
-        // איפוס הטופס והצגת הודעת הצלחה
-        form.reset();
-        setShowSuccessModal(true);
-      } catch (error) {
-        console.error('שגיאה בשמירת ליד:', error);
-        alert('אירעה שגיאה בשמירת הפרטים. נא לנסות שוב.');
-        throw error;
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'שגיאה בשמירת הליד בשרת');
       }
+
+      const responseData = await response.json();
+      if (!responseData.success) {
+        throw new Error(responseData.error || 'שגיאה בשמירת הליד בשרת');
+      }
+
+      // שמירת הליד החדש בזיכרון המקומי
+      setLeads(prevLeads => {
+        const newLeads = [...prevLeads, { ...responseData.lead, date: new Date(responseData.lead.date) }];
+        localStorage.setItem('leads', JSON.stringify(newLeads));
+        return newLeads;
+      });
+
+      // איפוס הטופס והצגת הודעת הצלחה
+      form.reset();
+      setShowSuccessModal(true);
     } catch (error) {
       console.error('שגיאה בשמירת ליד:', error);
       alert('אירעה שגיאה בשמירת הפרטים. נא לנסות שוב.');
@@ -515,12 +541,13 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        throw new Error('שגיאה במחיקת הליד מהשרת');
+        const data = await response.json();
+        throw new Error(data.error || 'שגיאה במחיקת הליד מהשרת');
       }
 
       // מחיקת הליד מהזיכרון המקומי
       setLeads(prevLeads => {
-        const newLeads = prevLeads.filter(lead => lead.id !== id);
+        const newLeads = prevLeads.filter(lead => lead._id !== id);
         localStorage.setItem('leads', JSON.stringify(newLeads));
         return newLeads;
       });
@@ -616,7 +643,7 @@ export default function Home() {
                 </tr>
               ) : (
                 filteredLeads.map(lead => (
-                  <tr key={lead.id} style={{ borderBottom: '1px solid #333' }}>
+                  <tr key={lead._id} style={{ borderBottom: '1px solid #333' }}>
                     <td style={{ padding: 12 }}>{lead.name}</td>
                     <td style={{ padding: 12 }}>{lead.phone}</td>
                     <td style={{ padding: 12 }}>{lead.message}</td>
@@ -625,7 +652,7 @@ export default function Home() {
                       <button
                         onClick={() => {
                           if (window.confirm('האם אתה בטוח שברצונך למחוק ליד זה?')) {
-                            deleteLead(lead.id);
+                            deleteLead(lead._id);
                           }
                         }}
                         style={{

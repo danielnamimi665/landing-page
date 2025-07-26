@@ -1,71 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-
-const LEADS_FILE_PATH = path.join(process.cwd(), 'data', 'leads.json');
-
-// Log the file path on startup
-console.log('נתיב קובץ הלידים:', LEADS_FILE_PATH);
-
-// וידוא שתיקיית הנתונים קיימת עם הרשאות מתאימות
-function ensureDataDirectory() {
-  const dataDir = path.dirname(LEADS_FILE_PATH);
-  if (!fs.existsSync(dataDir)) {
-    try {
-      fs.mkdirSync(dataDir, { recursive: true });
-      fs.chmodSync(dataDir, 0o777);
-      console.log(`נוצרה תיקיית נתונים: ${dataDir}`);
-    } catch (error) {
-      console.error('שגיאה ביצירת תיקיית נתונים:', error);
-      throw new Error('לא ניתן ליצור את תיקיית הנתונים');
-    }
-  }
-}
-
-// קריאת לידים מהקובץ
-function readLeads() {
-  try {
-    ensureDataDirectory();
-    if (fs.existsSync(LEADS_FILE_PATH)) {
-      const data = fs.readFileSync(LEADS_FILE_PATH, 'utf8');
-      const leads = JSON.parse(data);
-      console.log(`נקראו ${leads.length} לידים מהקובץ ${LEADS_FILE_PATH}`);
-      return leads;
-    } else {
-      console.log(`קובץ הלידים לא קיים ב-${LEADS_FILE_PATH}, מחזיר מערך ריק`);
-      return [];
-    }
-  } catch (error) {
-    console.error('שגיאה בקריאת לידים:', error);
-    throw new Error('לא ניתן לקרוא את קובץ הלידים');
-  }
-}
-
-// כתיבת לידים לקובץ
-function writeLeads(leads: any[]) {
-  try {
-    ensureDataDirectory();
-    
-    // בדיקת הרשאות כתיבה
-    try {
-      fs.accessSync(path.dirname(LEADS_FILE_PATH), fs.constants.W_OK);
-    } catch {
-      fs.chmodSync(path.dirname(LEADS_FILE_PATH), 0o777);
-    }
-
-    // כתיבת הנתונים לקובץ
-    fs.writeFileSync(LEADS_FILE_PATH, JSON.stringify(leads, null, 2));
-    console.log(`נכתבו ${leads.length} לידים לקובץ ${LEADS_FILE_PATH}`);
-  } catch (error) {
-    console.error('שגיאה בכתיבת לידים:', error);
-    throw new Error('לא ניתן לכתוב את קובץ הלידים');
-  }
-}
+import { db } from '../../lib/firebase';
+import { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 
 // GET - קבלת כל הלידים
 export async function GET() {
   try {
-    const leads = readLeads();
+    const leadsRef = collection(db, 'leads');
+    const q = query(leadsRef, orderBy('timestamp', 'desc'));
+    const querySnapshot = await getDocs(q);
+    
+    const leads = querySnapshot.docs.map(doc => ({
+      _id: doc.id,
+      ...doc.data()
+    }));
+
     return NextResponse.json({ success: true, leads });
   } catch (error) {
     console.error('שגיאה בקבלת לידים:', error);
@@ -93,7 +41,6 @@ export async function POST(request: NextRequest) {
     // יצירת ליד חדש
     const now = new Date();
     const newLead = {
-      id: now.getTime().toString(),
       name,
       phone,
       email: email || '',
@@ -102,16 +49,18 @@ export async function POST(request: NextRequest) {
       timestamp: now.getTime()
     };
 
-    // קריאת הלידים הקיימים והוספת החדש
-    const leads = readLeads();
-    leads.push(newLead);
-    
-    // שמירת הלידים המעודכנים
-    writeLeads(leads);
+    // שמירת הליד ב-Firestore
+    const docRef = await addDoc(collection(db, 'leads'), newLead);
+
+    // החזרת הליד עם ה-ID שנוצר
+    const savedLead = {
+      _id: docRef.id,
+      ...newLead
+    };
 
     return NextResponse.json({ 
       success: true, 
-      lead: newLead,
+      lead: savedLead,
       message: 'הליד נשמר בהצלחה'
     });
   } catch (error) {
@@ -136,17 +85,8 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const leads = readLeads();
-    const filteredLeads = leads.filter((lead: any) => lead.id !== id);
-    
-    if (leads.length === filteredLeads.length) {
-      return NextResponse.json(
-        { success: false, error: 'הליד לא נמצא' },
-        { status: 404 }
-      );
-    }
-
-    writeLeads(filteredLeads);
+    // מחיקת הליד מ-Firestore
+    await deleteDoc(doc(db, 'leads', id));
 
     return NextResponse.json({ 
       success: true,
