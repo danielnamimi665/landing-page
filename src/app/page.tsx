@@ -379,22 +379,45 @@ export default function Home() {
   ];
 
   // טוען לידים מהזיכרון המקומי
-  const loadLeads = () => {
+  const loadLeads = async () => {
     try {
-      const savedLeads = localStorage.getItem('leads');
-      if (savedLeads) {
-        const parsedLeads = JSON.parse(savedLeads);
-        console.log(`Loaded ${parsedLeads.length} leads from localStorage`);
-        setLeads(parsedLeads.map((lead: any) => ({ ...lead, date: new Date(lead.date) })));
+      // טעינת לידים מהשרת
+      const response = await fetch('/api/leads');
+      if (!response.ok) {
+        throw new Error('Failed to fetch leads from server');
       }
+      const serverLeads = await response.json();
+      
+      // המרת תאריכים למבנה Date
+      const formattedLeads = serverLeads.map((lead: any) => ({
+        ...lead,
+        date: new Date(lead.date)
+      }));
+
+      setLeads(formattedLeads);
+      console.log(`Loaded ${formattedLeads.length} leads from server`);
+      
+      // עדכון ה-localStorage
+      localStorage.setItem('leads', JSON.stringify(serverLeads));
     } catch (error) {
       console.error('Error loading leads:', error);
+      // אם יש שגיאה בטעינה מהשרת, ננסה לטעון מה-localStorage
+      try {
+        const savedLeads = localStorage.getItem('leads');
+        if (savedLeads) {
+          const parsedLeads = JSON.parse(savedLeads);
+          console.log(`Loaded ${parsedLeads.length} leads from localStorage (fallback)`);
+          setLeads(parsedLeads.map((lead: any) => ({ ...lead, date: new Date(lead.date) })));
+        }
+      } catch (localError) {
+        console.error('Error loading leads from localStorage:', localError);
+      }
     }
   };
 
   // טוען לידים בטעינת הדף
   useEffect(() => {
-    console.log('Component mounted - loading leads for the first time');
+    console.log('רכיב עלה - טוען לידים בפעם הראשונה');
     loadLeads();
   }, []);
 
@@ -437,14 +460,27 @@ export default function Home() {
         timestamp: Date.now()
       };
 
-      console.log('Saving new lead:', newLead);
+      console.log('שומר ליד חדש:', newLead);
+
+      // שמירת הליד בשרת
+      const response = await fetch('/api/leads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newLead),
+      });
+
+      if (!response.ok) {
+        throw new Error('שגיאה בשמירת הליד בשרת');
+      }
 
       // שמירת הליד החדש בזיכרון המקומי
       setLeads(prevLeads => {
         const newLeads = [...prevLeads, { ...newLead, date: new Date(newLead.date) }];
         // שמירה ב-localStorage
         localStorage.setItem('leads', JSON.stringify(newLeads));
-        console.log(`Updated leads - now has ${newLeads.length} leads`);
+        console.log(`עודכנו לידים - כעת יש ${newLeads.length} לידים`);
         return newLeads;
       });
 
@@ -453,7 +489,7 @@ export default function Home() {
       setShowSuccessModal(true);
       
     } catch (error) {
-      console.error('Error saving lead:', error);
+      console.error('שגיאה בשמירת ליד:', error);
       alert('אירעה שגיאה בשמירת הפרטים. נא לנסות שוב.');
     } finally {
       setIsLoading(false);
@@ -461,15 +497,25 @@ export default function Home() {
   };
 
   // מחיקת ליד
-  const deleteLead = (id: string) => {
+  const deleteLead = async (id: string) => {
     try {
+      // מחיקת הליד מהשרת
+      const response = await fetch(`/api/leads?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('שגיאה במחיקת הליד מהשרת');
+      }
+
+      // מחיקת הליד מהזיכרון המקומי
       setLeads(prevLeads => {
         const newLeads = prevLeads.filter(lead => lead.id !== id);
         localStorage.setItem('leads', JSON.stringify(newLeads));
         return newLeads;
       });
     } catch (error) {
-      console.error('Error deleting lead:', error);
+      console.error('שגיאה במחיקת ליד:', error);
       alert('אירעה שגיאה במחיקת הפרטים');
     }
   };
@@ -484,49 +530,112 @@ export default function Home() {
 
   if (showAdmin) {
     return (
-      <div style={{ minHeight: '100vh', background: '#1e1e1e', color: '#fff', padding: 32 }}>
+      <div style={{ minHeight: '100vh', background: '#1e1e1e', color: '#fff', padding: 32, direction: 'rtl' }}>
         <button
           onClick={() => setShowAdmin(false)}
           style={{ marginBottom: 24, background: '#00F0FF', color: '#232323', fontWeight: 800, border: 'none', borderRadius: 16, padding: '12px 28px', fontSize: 18, cursor: 'pointer' }}
         >
-          דף הבית
+          חזרה לדף הבית
         </button>
-        <h2 style={{ color: '#00F0FF', marginBottom: 24 }}>טבלת לידים</h2>
-        {/* לוח שנה וכפתורי סינון */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
-          <DatePicker
-            selected={selectedDate}
-            onChange={date => { setSelectedDate(date); setFilterMode('date'); }}
-            dateFormat="dd/MM/yyyy"
-            placeholderText="בחר תאריך..."
-            isClearable
-            calendarStartDay={0}
-            className="datepicker-input"
-          />
-          <button style={{ background: '#00F0FF', color: '#232323', fontWeight: 700, border: 'none', borderRadius: 8, padding: '8px 18px', cursor: 'pointer' }} onClick={() => { setFilterMode('today'); setSelectedDate(null); }}>היום</button>
-          <button style={{ background: '#00F0FF', color: '#232323', fontWeight: 700, border: 'none', borderRadius: 8, padding: '8px 18px', cursor: 'pointer' }} onClick={() => { setFilterMode('yesterday'); setSelectedDate(null); }}>אתמול</button>
-          <button style={{ background: '#00F0FF', color: '#232323', fontWeight: 700, border: 'none', borderRadius: 8, padding: '8px 18px', cursor: 'pointer' }} onClick={() => { setFilterMode('all'); setSelectedDate(null); }}>מקסימום</button>
+        <h2 style={{ color: '#00F0FF', marginBottom: 24 }}>ניהול לידים</h2>
+        
+        {/* כפתורי סינון */}
+        <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+          <button
+            onClick={() => setFilterMode('all')}
+            style={{
+              background: filterMode === 'all' ? '#00F0FF' : '#333',
+              color: filterMode === 'all' ? '#232323' : '#fff',
+              border: 'none',
+              borderRadius: 8,
+              padding: '8px 16px',
+              cursor: 'pointer',
+              fontWeight: filterMode === 'all' ? 800 : 400
+            }}
+          >
+            הצג הכל
+          </button>
+          <button
+            onClick={() => setFilterMode('today')}
+            style={{
+              background: filterMode === 'today' ? '#00F0FF' : '#333',
+              color: filterMode === 'today' ? '#232323' : '#fff',
+              border: 'none',
+              borderRadius: 8,
+              padding: '8px 16px',
+              cursor: 'pointer',
+              fontWeight: filterMode === 'today' ? 800 : 400
+            }}
+          >
+            היום
+          </button>
+          <button
+            onClick={() => setFilterMode('yesterday')}
+            style={{
+              background: filterMode === 'yesterday' ? '#00F0FF' : '#333',
+              color: filterMode === 'yesterday' ? '#232323' : '#fff',
+              border: 'none',
+              borderRadius: 8,
+              padding: '8px 16px',
+              cursor: 'pointer',
+              fontWeight: filterMode === 'yesterday' ? 800 : 400
+            }}
+          >
+            אתמול
+          </button>
         </div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', background: '#232323', borderRadius: 12 }}>
-          <thead>
-            <tr style={{ background: '#00F0FF', color: '#232323' }}>
-              <th style={{ padding: 12 }}>שם מלא</th>
-              <th style={{ padding: 12 }}>מספר טלפון</th>
-              <th style={{ padding: 12 }}>תחום עיסוק</th>
-              <th style={{ padding: 12 }}>תאריך</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredLeads.map((lead, idx) => (
-              <tr key={idx} style={{ borderBottom: '1px solid #444' }}>
-                <td style={{ padding: 12 }}>{lead.name}</td>
-                <td style={{ padding: 12 }}>{lead.phone}</td>
-                <td style={{ padding: 12 }}>{lead.message || lead.occupation || '-'}</td>
-                <td style={{ padding: 12 }}>{format(lead.date, 'dd/MM/yyyy')}</td>
+
+        {/* טבלת לידים */}
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 24 }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid #333' }}>
+                <th style={{ padding: 12, textAlign: 'right' }}>שם מלא</th>
+                <th style={{ padding: 12, textAlign: 'right' }}>טלפון</th>
+                <th style={{ padding: 12, textAlign: 'right' }}>תחום עסקי</th>
+                <th style={{ padding: 12, textAlign: 'right' }}>תאריך</th>
+                <th style={{ padding: 12, textAlign: 'right' }}>פעולות</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredLeads.length === 0 ? (
+                <tr>
+                  <td colSpan={5} style={{ padding: 24, textAlign: 'center' }}>
+                    לא נמצאו לידים
+                  </td>
+                </tr>
+              ) : (
+                filteredLeads.map(lead => (
+                  <tr key={lead.id} style={{ borderBottom: '1px solid #333' }}>
+                    <td style={{ padding: 12 }}>{lead.name}</td>
+                    <td style={{ padding: 12 }}>{lead.phone}</td>
+                    <td style={{ padding: 12 }}>{lead.message}</td>
+                    <td style={{ padding: 12 }}>{format(lead.date, 'dd/MM/yyyy HH:mm')}</td>
+                    <td style={{ padding: 12 }}>
+                      <button
+                        onClick={() => {
+                          if (window.confirm('האם אתה בטוח שברצונך למחוק ליד זה?')) {
+                            deleteLead(lead.id);
+                          }
+                        }}
+                        style={{
+                          background: '#ff4444',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: 4,
+                          padding: '4px 8px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        מחיקה
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     );
   }
